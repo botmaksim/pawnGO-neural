@@ -214,16 +214,23 @@ def parse_pgn_files(
                                 continue
 
                             # Dead-draw filter: skip drawn endgame shuffles that convey no tactical lesson
-                            if filter_dead_draws and abs(eval_score) < 20.0 and move_num > 40:
+                            is_decisive = (winning_color is not None)
+                            if not is_decisive and filter_dead_draws and abs(eval_score) < 20.0 and move_num > 45:
                                 board.push(move)
                                 continue
 
-                            # Action-move decimation: prioritize pawn moves, captures, or every 2nd move
-                            piece_moved = board.piece_at(move.from_square)
-                            is_pawn_or_capture = (piece_moved and piece_moved.piece_type == chess.PAWN) or board.is_capture(move)
-                            if not is_pawn_or_capture and (move_num % 2 != 0):
-                                board.push(move)
-                                continue
+                            # For decisive games: retain all winning conversion moves, pawn pushes, checks, captures, king moves
+                            if not is_decisive:
+                                piece_moved = board.piece_at(move.from_square)
+                                is_key_move = (
+                                    (piece_moved and piece_moved.piece_type in (chess.PAWN, chess.KING))
+                                    or board.is_capture(move)
+                                    or board.gives_check(move)
+                                    or move.promotion is not None
+                                )
+                                if not is_key_move and (move_num % 2 != 0):
+                                    board.push(move)
+                                    continue
 
                             endgame_positions_recorded += 1
 
@@ -293,7 +300,7 @@ if __name__ == "__main__":
         help="Target training source: winner moves, pawnGO wins/positive, pawnGO all, or all"
     )
     parser.add_argument("--no-draws", dest="include_draws", action="store_false", help="Exclude drawn games")
-    parser.add_argument("--max-endgame-per-game", type=int, default=12, help="Cap maximum endgame moves per game")
+    parser.add_argument("--max-endgame-per-game", type=int, default=35, help="Cap maximum endgame moves per game (default: 35)")
     parser.add_argument("--no-filter-draws", dest="filter_dead_draws", action="store_false", help="Don't filter dead draws")
     parser.add_argument("--max-games", type=int, default=None, help="Limit number of games for quick testing")
     args = parser.parse_args()

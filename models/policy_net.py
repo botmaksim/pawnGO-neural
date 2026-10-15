@@ -75,27 +75,15 @@ class PolicyNet(nn.Module):
         If legal_only is True: masks out illegal moves.
         If legal_only is False: pure anarchy mode, allows free-form moves!
         """
-        from data.extract_pgn import board_to_planes, move_to_index, index_to_move
+        from data.extract_pgn import board_to_planes
+        from models.legalizer import MoveLegalizer
 
         self.eval()
         planes = board_to_planes(board)
         tensor = torch.from_numpy(planes).unsqueeze(0).to(device)
         logits = self(tensor)[0]  # Shape: (4096,)
 
-        if legal_only and list(board.legal_moves):
-            # Mask illegal moves
-            mask = torch.full((4096,), -1e9, device=device)
-            for m in board.legal_moves:
-                idx = move_to_index(m)
-                mask[idx] = logits[idx]
-            logits = mask
-
-        if temperature > 0.0:
-            probs = F.softmax(logits / temperature, dim=-1)
-            action_idx = torch.multinomial(probs, num_samples=1).item()
-        else:
-            action_idx = torch.argmax(logits).item()
-
-        from_sq = action_idx // 64
-        to_sq = action_idx % 64
-        return chess.Move(from_sq, to_sq)
+        move, is_legal, confidence = MoveLegalizer.sample_move(
+            logits, board, temperature=temperature, anarchy=not legal_only
+        )
+        return move

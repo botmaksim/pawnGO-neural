@@ -45,7 +45,7 @@ def main():
                 "--pgn-dir", args.pgn_dir,
                 "--out", npz_path,
                 "--target-mode", mode,
-                "--max-endgame-per-game", "12"
+                "--max-endgame-per-game", "35"
             ]
             run_cmd(extract_cmd)
         else:

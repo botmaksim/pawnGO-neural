@@ -21,7 +21,8 @@ def train_policy(data_path, epochs=10, batch_size=256, lr=1e-3, device=None, sav
     print(f"Training positions: {len(train_loader.dataset):,}, Validation: {len(val_loader.dataset):,}")
 
     model = PolicyNet().to(device)
-    criterion = nn.CrossEntropyLoss()
+    # Label smoothing regularizes confidence and minimizes test deviation
+    criterion = nn.CrossEntropyLoss(label_smoothing=0.03)
     optimizer = optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
     scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs)
 
