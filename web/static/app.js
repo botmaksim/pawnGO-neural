@@ -44,11 +44,20 @@ let blackTimeMs = 180000;
 let incMs = 1000;
 let isFixedTime = false;
 let fixedTimeMs = 200;
+let castlingRights = "KQkq";
+let enPassantSq = "-";
+let halfmoveClock = 0;
+let fullmoveNumber = 1;
+let pendingPromotion = null;
 
 function parseFen(fen) {
   const parts = fen.split(' ');
   const placement = parts[0];
   activeTurn = parts[1] || 'w';
+  castlingRights = parts[2] || '-';
+  enPassantSq = parts[3] || '-';
+  halfmoveClock = parseInt(parts[4], 10) || 0;
+  fullmoveNumber = parseInt(parts[5], 10) || 1;
   boardState = {};
 
   const ranks = placement.split('/');
@@ -91,7 +100,7 @@ function generateFen() {
     }
     if (r > 1) placement += "/";
   }
-  return `${placement} ${activeTurn} - - 0 1`;
+  return `${placement} ${activeTurn} ${castlingRights} ${enPassantSq} ${halfmoveClock} ${fullmoveNumber}`;
 }
 
 function clearPredictionHighlights() {
@@ -175,7 +184,7 @@ function initBoardDOM() {
         if (!draggedPiece) return;
 
         if (dragSourceSq) {
-          applyMoveAndRecord(dragSourceSq, sq, `${dragSourceSq}->${sq}`, `${dragSourceSq}${sq}`, true, "Manual Move");
+          tryApplyMove(dragSourceSq, sq, true, "Manual Move");
         } else {
           // Piece spawned from palette
           boardState[sq] = draggedPiece;
@@ -195,7 +204,7 @@ function initBoardDOM() {
         if (isMatchRunning) return;
         if (selectedSq) {
           if (selectedSq !== sq) {
-            applyMoveAndRecord(selectedSq, sq, `${selectedSq}->${sq}`, `${selectedSq}${sq}`, true, "Manual Move");
+            tryApplyMove(selectedSq, sq, true, "Manual Move");
             selectedSq = null;
             return;
           }
@@ -418,26 +427,157 @@ async function triggerEvaluate(lastMovedColor = null) {
   }
 }
 
+// Check draw conditions (50-move rule & 3-fold repetition)
+function checkDrawConditions(currentFen) {
+  // 1. 50-move rule: 100 plies without pawn move or capture
+  if (halfmoveClock >= 100) {
+    return { isDraw: true, reason: "1/2-1/2: Draw by 50-move rule" };
+  }
+
+  // 2. 3-fold repetition
+  const currKey = currentFen.split(' ').slice(0, 4).join(' ');
+  const historyKeys = [
+    STARTING_FEN.split(' ').slice(0, 4).join(' '),
+    ...gameHistory.map(h => h.fen.split(' ').slice(0, 4).join(' '))
+  ];
+  const count = historyKeys.filter(k => k === currKey).length;
+  if (count >= 3) {
+    return { isDraw: true, reason: "1/2-1/2: Draw by 3-fold repetition" };
+  }
+
+  return { isDraw: false, reason: "" };
+}
+
+// Request pawn promotion modal
+function requestPromotion(fromSq, toSq, isLegal, engineName) {
+  pendingPromotion = { fromSq, toSq, isLegal, engineName };
+  const p = boardState[fromSq];
+  const isWhite = (p === p.toUpperCase());
+  const promoModal = document.getElementById("promotionModal");
+  const choicesEl = document.getElementById("promotionChoices");
+  choicesEl.innerHTML = "";
+
+  const pieces = isWhite ? ['Q', 'N', 'R', 'B'] : ['q', 'n', 'r', 'b'];
+  const labels = {
+    'Q': 'Queen', 'N': 'Knight', 'R': 'Rook', 'B': 'Bishop',
+    'q': 'Queen', 'n': 'Knight', 'r': 'Rook', 'b': 'Bishop'
+  };
+
+  pieces.forEach(pChar => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "promo-btn";
+    btn.innerHTML = `
+      ${PIECE_SVGS[pChar]}
+      <span class="promo-btn-label">${labels[pChar]}</span>
+    `;
+    btn.onclick = () => {
+      promoModal.classList.add("hidden");
+      const chosenPromo = pChar;
+      pendingPromotion = null;
+      applyMoveAndRecord(fromSq, toSq, `${fromSq}->${toSq}=${chosenPromo.toUpperCase()}`, `${fromSq}${toSq}${chosenPromo.toLowerCase()}`, isLegal, engineName, chosenPromo);
+    };
+    choicesEl.appendChild(btn);
+  });
+
+  promoModal.classList.remove("hidden");
+}
+
+function tryApplyMove(fromSq, toSq, isLegal, engineName) {
+  const p = boardState[fromSq];
+  if (!p) return;
+  // If pawn reaches back rank, open promotion modal for underpromotion choice
+  if ((p === 'P' && toSq[1] === '8') || (p === 'p' && toSq[1] === '1')) {
+    requestPromotion(fromSq, toSq, isLegal, engineName);
+    return;
+  }
+  applyMoveAndRecord(fromSq, toSq, `${fromSq}->${toSq}`, `${fromSq}${toSq}`, isLegal, engineName);
+}
+
 // Apply move with rollback & branching support
-function applyMoveAndRecord(fromSq, toSq, san, moveUci, isLegal, engineName) {
+function applyMoveAndRecord(fromSq, toSq, san, moveUci, isLegal, engineName, promoPiece) {
   // If rewound to a previous position, truncate future history to start a new branch!
   if (currentHistoryIndex < gameHistory.length - 1) {
     gameHistory = gameHistory.slice(0, currentHistoryIndex + 1);
   }
 
   let p = boardState[fromSq];
-  const captured = boardState[toSq] ? boardState[toSq] : null;
+  if (!p) return;
+  const isWhite = (p === p.toUpperCase());
+  let captured = boardState[toSq] ? boardState[toSq] : null;
+
+  // Handle Castling King moves
+  if (p === 'K') {
+    if (fromSq === 'e1' && toSq === 'g1') {
+      delete boardState['h1'];
+      boardState['f1'] = 'R';
+    } else if (fromSq === 'e1' && toSq === 'c1') {
+      delete boardState['a1'];
+      boardState['d1'] = 'R';
+    }
+  } else if (p === 'k') {
+    if (fromSq === 'e8' && toSq === 'g8') {
+      delete boardState['h8'];
+      boardState['f8'] = 'r';
+    } else if (fromSq === 'e8' && toSq === 'c8') {
+      delete boardState['a8'];
+      boardState['d8'] = 'r';
+    }
+  }
+
+  // Handle En Passant capture
+  if ((p === 'P' || p === 'p') && fromSq[0] !== toSq[0] && toSq === enPassantSq && !captured) {
+    const epCapSq = `${toSq[0]}${fromSq[1]}`;
+    captured = boardState[epCapSq] || null;
+    delete boardState[epCapSq];
+  }
+
+  // Update Castling Rights
+  if (fromSq === 'e1') {
+    castlingRights = castlingRights.replace(/K/g, '').replace(/Q/g, '');
+  } else if (fromSq === 'e8') {
+    castlingRights = castlingRights.replace(/k/g, '').replace(/q/g, '');
+  }
+  if (fromSq === 'h1' || toSq === 'h1') castlingRights = castlingRights.replace(/K/g, '');
+  if (fromSq === 'a1' || toSq === 'a1') castlingRights = castlingRights.replace(/Q/g, '');
+  if (fromSq === 'h8' || toSq === 'h8') castlingRights = castlingRights.replace(/k/g, '');
+  if (fromSq === 'a8' || toSq === 'a8') castlingRights = castlingRights.replace(/q/g, '');
+  if (castlingRights === '') castlingRights = '-';
+
+  // Update En Passant square
+  if (p === 'P' && fromSq[1] === '2' && toSq[1] === '4') {
+    enPassantSq = `${fromSq[0]}3`;
+  } else if (p === 'p' && fromSq[1] === '7' && toSq[1] === '5') {
+    enPassantSq = `${fromSq[0]}6`;
+  } else {
+    enPassantSq = '-';
+  }
+
+  // Halfmove clock tracking (50-move rule)
+  const isPawnMove = (p === 'P' || p === 'p');
+  if (isPawnMove || captured !== null) {
+    halfmoveClock = 0;
+  } else {
+    halfmoveClock++;
+  }
+
   delete boardState[fromSq];
 
-  // Pawn promotion to Queen
-  if (p === 'P' && toSq[1] === '8') p = 'Q';
-  if (p === 'p' && toSq[1] === '1') p = 'q';
+  // Pawn promotion
+  if (p === 'P' && toSq[1] === '8') {
+    p = promoPiece ? promoPiece.toUpperCase() : 'Q';
+  } else if (p === 'p' && toSq[1] === '1') {
+    p = promoPiece ? promoPiece.toLowerCase() : 'q';
+  }
 
   boardState[toSq] = p;
   lastMoveSq = toSq;
 
-  const pieceColor = (p === p.toUpperCase()) ? 'w' : 'b';
+  const pieceColor = isWhite ? 'w' : 'b';
   activeTurn = (pieceColor === 'w') ? 'b' : 'w';
+  if (pieceColor === 'b') {
+    fullmoveNumber++;
+  }
 
   const newFen = generateFen();
 
@@ -457,6 +597,16 @@ function applyMoveAndRecord(fromSq, toSq, san, moveUci, isLegal, engineName) {
   renderBoard();
   updateMoveHistoryUI();
   triggerEvaluate(pieceColor);
+
+  // Check draw conditions
+  const drawInfo = checkDrawConditions(newFen);
+  if (drawInfo.isDraw) {
+    const legalityIndicator = document.getElementById("legalityIndicator");
+    if (legalityIndicator) {
+      legalityIndicator.className = "legality-pill draw";
+      legalityIndicator.textContent = drawInfo.reason;
+    }
+  }
 }
 
 // Match Step execution
@@ -465,7 +615,10 @@ async function executeMatchStep() {
   const blackEng = document.getElementById("matchBlackEngine").value;
   const fen = generateFen();
 
-  const historyFens = gameHistory.map(h => h.fen.split(' ')[0]);
+  const historyFens = [
+    STARTING_FEN.split(' ').slice(0, 4).join(' '),
+    ...gameHistory.map(h => h.fen.split(' ').slice(0, 4).join(' '))
+  ];
   const moveCount = Math.floor(gameHistory.length / 2) + 1;
 
   try {
@@ -484,7 +637,8 @@ async function executeMatchStep() {
     if (!res.ok) throw new Error("Step API error");
     const data = await res.json();
 
-    if (data.is_game_over) {
+    // If game was ALREADY over before move could be made:
+    if (!data.move && data.is_game_over) {
       stopMatch(data.result, data.termination_reason);
       return;
     }
@@ -499,30 +653,33 @@ async function executeMatchStep() {
     }
     updateClockDisplays();
 
-    // Record to history (respecting branching if user had rewound)
-    if (currentHistoryIndex < gameHistory.length - 1) {
-      gameHistory = gameHistory.slice(0, currentHistoryIndex + 1);
+    // Always record and render move FIRST
+    if (data.move) {
+      if (currentHistoryIndex < gameHistory.length - 1) {
+        gameHistory = gameHistory.slice(0, currentHistoryIndex + 1);
+      }
+
+      gameHistory.push({
+        fen: data.fen,
+        move: data.move,
+        san: data.san || data.move,
+        from_sq: data.from_sq,
+        to_sq: data.to_sq,
+        is_legal: data.is_legal,
+        engine_name: data.engine_name,
+        captured: data.captured
+      });
+      currentHistoryIndex = gameHistory.length - 1;
+
+      parseFen(data.fen);
+      lastMoveSq = data.to_sq;
+      clearPredictionHighlights();
+      renderBoard();
+      updateMoveHistoryUI();
+      triggerEvaluate();
     }
 
-    gameHistory.push({
-      fen: data.fen,
-      move: data.move,
-      san: data.san || data.move,
-      from_sq: data.from_sq,
-      to_sq: data.to_sq,
-      is_legal: data.is_legal,
-      engine_name: data.engine_name,
-      captured: data.captured
-    });
-    currentHistoryIndex = gameHistory.length - 1;
-
-    parseFen(data.fen);
-    lastMoveSq = data.to_sq;
-    clearPredictionHighlights();
-    renderBoard();
-    updateMoveHistoryUI();
-    triggerEvaluate();
-
+    // Now check if game is over (Checkmate, 50-move rule, 3-fold repetition, regicide)
     if (data.is_game_over) {
       stopMatch(data.result, data.termination_reason);
     }
@@ -709,7 +866,8 @@ async function predictNextMove() {
 function playPredictedMove() {
   if (!currentPredictedMove) return;
   const { from_sq, to_sq, san, move, name, is_legal } = currentPredictedMove;
-  applyMoveAndRecord(from_sq, to_sq, san || move, move, is_legal, name);
+  const promo = (move && move.length === 5) ? move[4] : null;
+  applyMoveAndRecord(from_sq, to_sq, san || move, move, is_legal, name, promo);
   clearPredictionHighlights();
 }
 
@@ -728,7 +886,8 @@ async function executeSingleAiMove() {
     });
     if (!res.ok) throw new Error("API error");
     const data = await res.json();
-    applyMoveAndRecord(data.from_sq, data.to_sq, data.san || data.move, data.move, data.is_legal, data.name);
+    const promo = (data.move && data.move.length === 5) ? data.move[4] : null;
+    applyMoveAndRecord(data.from_sq, data.to_sq, data.san || data.move, data.move, data.is_legal, data.name, promo);
     commentEl.textContent = `Played ${data.san || data.move} (${data.name}, ${data.duration_ms}ms)`;
     clearPredictionHighlights();
   } catch (err) {
@@ -978,6 +1137,7 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("tabBtnMatch").classList.remove("active");
     document.getElementById("sandboxPanel").classList.remove("hidden");
     document.getElementById("matchPanel").classList.add("hidden");
+    document.getElementById("clockBanner").classList.add("sandbox-mode");
   });
 
   document.getElementById("tabBtnMatch").addEventListener("click", () => {
@@ -985,7 +1145,18 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("tabBtnSandbox").classList.remove("active");
     document.getElementById("matchPanel").classList.remove("hidden");
     document.getElementById("sandboxPanel").classList.add("hidden");
+    document.getElementById("clockBanner").classList.remove("sandbox-mode");
   });
+
+  // Pawn Promotion Cancel button
+  const btnCancelPromo = document.getElementById("btnCancelPromotion");
+  if (btnCancelPromo) {
+    btnCancelPromo.addEventListener("click", () => {
+      document.getElementById("promotionModal").classList.add("hidden");
+      pendingPromotion = null;
+      renderBoard();
+    });
+  }
 
   // Bidirectional sync between Model Selection and Anarchy Checkbox
   const modelSelectEl = document.getElementById("modelSelect");
@@ -1154,6 +1325,10 @@ document.addEventListener("DOMContentLoaded", () => {
     boardState = {};
     lastMoveSq = null;
     selectedSq = null;
+    castlingRights = "-";
+    enPassantSq = "-";
+    halfmoveClock = 0;
+    fullmoveNumber = 1;
     clearPredictionHighlights();
     renderBoard();
     triggerEvaluate();

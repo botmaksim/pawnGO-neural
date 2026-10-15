@@ -391,20 +391,29 @@ def check_game_termination(board: chess.Board, move_count: int, history_fens: Li
                 winner_name = "Black" if board.turn == chess.WHITE else "White"
                 return True, winner, f"Checkmate by {winner_name}"
             if board.is_stalemate():
-                return True, "1/2-1/2", "Stalemate"
+                return True, "1/2-1/2", "Draw by Stalemate"
             if board.is_insufficient_material():
                 return True, "1/2-1/2", "Draw by insufficient material"
+            if board.can_claim_fifty_moves() or board.is_fifty_moves():
+                return True, "1/2-1/2", "Draw by 50-move rule"
+            if board.can_claim_threefold_repetition() or board.is_fivefold_repetition():
+                return True, "1/2-1/2", "Draw by 3-fold repetition"
     except Exception:
         pass
 
-    # 4. 3-Fold Repetition
+    # 4. 50-Move Rule (works on all boards, including anarchy)
+    if getattr(board, "halfmove_clock", 0) >= 100:
+        return True, "1/2-1/2", "Draw by 50-move rule (100 plies without capture or pawn move)"
+
+    # 5. 3-Fold Repetition (works on all boards)
+    curr_pos_key = " ".join(board.fen().split()[:4])
     curr_placement = board.fen().split()[0]
-    if history_fens.count(curr_placement) >= 3:
+    if history_fens.count(curr_pos_key) >= 3 or history_fens.count(curr_placement) >= 3:
         return True, "1/2-1/2", "Draw by 3-fold repetition"
 
-    # 5. Move Count Limit
-    if move_count >= 120:
-        return True, "1/2-1/2", "Draw by move limit (120 full moves)"
+    # 6. Move Count Limit
+    if move_count >= 150:
+        return True, "1/2-1/2", "Draw by move limit (150 full moves)"
 
     return False, "*", ""
 
@@ -479,27 +488,73 @@ def match_step(req: MatchStepRequest):
     to_sq = chess.parse_square(move_info["to_sq"])
 
     # 3. Apply move to board (works for both legal and anarchy moves)
-    p = board.piece_at(from_sq)
-    captured = board.piece_at(to_sq)
+    applied_legally = False
+    captured_sym = None
+    try:
+        uci_str = move_info.get("move", "")
+        cand_move = chess.Move.from_uci(uci_str)
+        if cand_move in board.legal_moves:
+            cap_piece = board.piece_at(cand_move.to_square)
+            if cap_piece:
+                captured_sym = cap_piece.symbol()
+            board.push(cand_move)
+            applied_legally = True
+    except Exception:
+        applied_legally = False
 
-    # Handle queen promotion if pawn reaches last rank
-    if p and p.piece_type == chess.PAWN:
-        if (p.color == chess.WHITE and chess.square_rank(to_sq) == 7) or (p.color == chess.BLACK and chess.square_rank(to_sq) == 0):
-            p = chess.Piece(chess.QUEEN, p.color)
+    if not applied_legally:
+        from_sq = chess.parse_square(move_info["from_sq"])
+        to_sq = chess.parse_square(move_info["to_sq"])
+        p = board.piece_at(from_sq)
+        captured = board.piece_at(to_sq)
+        if captured:
+            captured_sym = captured.symbol()
 
-    board.remove_piece_at(from_sq)
-    board.set_piece_at(to_sq, p)
+        # Handle castling for King moves
+        if p and p.piece_type == chess.KING:
+            if from_sq == chess.E1 and to_sq == chess.G1:
+                board.remove_piece_at(chess.H1)
+                board.set_piece_at(chess.F1, chess.Piece(chess.ROOK, chess.WHITE))
+            elif from_sq == chess.E1 and to_sq == chess.C1:
+                board.remove_piece_at(chess.A1)
+                board.set_piece_at(chess.D1, chess.Piece(chess.ROOK, chess.WHITE))
+            elif from_sq == chess.E8 and to_sq == chess.G8:
+                board.remove_piece_at(chess.H8)
+                board.set_piece_at(chess.F8, chess.Piece(chess.ROOK, chess.BLACK))
+            elif from_sq == chess.E8 and to_sq == chess.C8:
+                board.remove_piece_at(chess.A8)
+                board.set_piece_at(chess.D8, chess.Piece(chess.ROOK, chess.BLACK))
 
-    # Flip turn
-    next_turn = chess.BLACK if active_turn == "w" else chess.WHITE
-    board.turn = next_turn
-    if next_turn == chess.WHITE:
-        board.fullmove_number += 1
+        # Handle promotion
+        if p and p.piece_type == chess.PAWN:
+            if (p.color == chess.WHITE and chess.square_rank(to_sq) == 7) or (p.color == chess.BLACK and chess.square_rank(to_sq) == 0):
+                promo_char = move_info.get("move", "")[4:5].lower()
+                promo_type = chess.QUEEN
+                if promo_char == "n": promo_type = chess.KNIGHT
+                elif promo_char == "r": promo_type = chess.ROOK
+                elif promo_char == "b": promo_type = chess.BISHOP
+                p = chess.Piece(promo_type, p.color)
+
+        board.remove_piece_at(from_sq)
+        board.set_piece_at(to_sq, p)
+
+        # Update halfmove clock
+        if (p and p.piece_type == chess.PAWN) or captured:
+            board.halfmove_clock = 0
+        else:
+            board.halfmove_clock += 1
+
+        # Flip turn
+        next_turn = chess.BLACK if active_turn == "w" else chess.WHITE
+        board.turn = next_turn
+        if next_turn == chess.WHITE:
+            board.fullmove_number += 1
 
     new_fen = board.fen()
 
-    # 4. Check termination after move (e.g. King was captured on this turn!)
-    is_over, result, reason = check_game_termination(board, req.move_count, req.history_fens + [new_fen.split()[0]])
+    # 4. Check termination after move (e.g. King was captured on this turn or checkmate delivered!)
+    pos_key = " ".join(new_fen.split()[:4])
+    is_over, result, reason = check_game_termination(board, req.move_count, req.history_fens + [pos_key])
 
     return {
         "fen": new_fen,
@@ -510,7 +565,7 @@ def match_step(req: MatchStepRequest):
         "is_legal": move_info["is_legal"],
         "engine_name": move_info["name"],
         "engine_id": current_engine_id,
-        "captured": captured.symbol() if captured else None,
+        "captured": captured_sym,
         "is_game_over": is_over,
         "result": result,
         "termination_reason": reason

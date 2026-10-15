@@ -39,13 +39,14 @@
           <button id="btnThermoPawnGO" class="thermo-btn" data-engine="pawngo">pawnGO</button>
         </div>
 
+        <div id="thermometerVal" class="thermometer-val-badge">+0.00</div>
+
         <div class="thermometer-container" title="Position Evaluation">
           <div class="thermometer-label-top">Black</div>
           <div class="thermometer-track">
             <div id="thermometerFill" class="thermometer-fill" style="height: 50%;"></div>
             <div class="thermometer-midline"></div>
           </div>
-          <div id="thermometerVal" class="thermometer-val">+0.00</div>
           <div class="thermometer-label-bottom">White</div>
         </div>
       </div>
@@ -53,7 +54,7 @@
       <!-- Chess Board Section -->
       <div class="board-wrapper">
         <!-- Chess Clocks Banner (Active in Match Mode) -->
-        <div id="clockBanner" class="clock-banner">
+        <div id="clockBanner" class="clock-banner sandbox-mode">
           <div id="blackClock" class="clock-card black-clock">
             <span class="clock-label">Black Clock</span>
             <span id="blackClockTime" class="clock-digits">03:00.0</span>
@@ -296,6 +297,20 @@
           <button id="btnCancelPgnModal" class="btn btn-secondary">Cancel</button>
           <button id="btnDoImportPgn" class="btn btn-primary">Import & Load Game</button>
         </div>
+      </div>
+    </div>
+
+    <!-- Pawn Promotion Modal -->
+    <div id="promotionModal" class="modal-overlay hidden">
+      <div class="promotion-modal-content">
+        <div class="promo-header">
+          <h3>Promote Pawn</h3>
+          <p class="promo-subtitle">Choose promotion piece:</p>
+        </div>
+        <div id="promotionChoices" class="promo-grid">
+          <!-- Populated dynamically with SVG piece buttons -->
+        </div>
+        <button id="btnCancelPromotion" class="btn btn-sm btn-secondary promo-cancel-btn">Cancel</button>
       </div>
     </div>
 

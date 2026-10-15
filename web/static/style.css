@@ -162,13 +162,31 @@ body {
   box-shadow: 0 2px 6px rgba(59, 130, 246, 0.4);
 }
 
+.thermometer-val-badge {
+  font-family: 'Fira Code', monospace;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #f8fafc;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid var(--border-color);
+  padding: 4px 6px;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+  width: 100%;
+  text-align: center;
+  white-space: nowrap;
+  letter-spacing: 0.5px;
+}
+
 .thermometer-container {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   width: 60px;
-  height: 504px;
+  flex: 1;
+  height: 460px;
 }
 
 .thermometer-label-top, .thermometer-label-bottom {
@@ -208,25 +226,6 @@ body {
   z-index: 2;
 }
 
-.thermometer-val {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-family: 'Fira Code', monospace;
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: #f8fafc;
-  background: rgba(15, 23, 42, 0.95);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  padding: 2px 6px;
-  border-radius: 6px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
-  z-index: 5;
-  pointer-events: none;
-  white-space: nowrap;
-}
-
 /* Board Wrapper */
 .board-wrapper {
   display: flex;
@@ -245,6 +244,22 @@ body {
   border-radius: 8px;
   padding: 6px 12px;
   border: 1px solid var(--border-color);
+}
+
+.clock-banner.sandbox-mode {
+  justify-content: center;
+}
+
+.clock-banner.sandbox-mode .clock-card {
+  display: none !important;
+}
+
+.clock-banner.sandbox-mode .clock-status-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
 }
 
 .clock-card {
@@ -961,6 +976,78 @@ body {
   padding: 12px 18px;
   border-top: 1px solid var(--border-color);
   background: rgba(255, 255, 255, 0.02);
+}
+
+/* Promotion Modal */
+.promotion-modal-content {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 22px;
+  width: 360px;
+  max-width: 90vw;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.75);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+}
+
+.promo-header h3 {
+  margin: 0;
+  font-size: 1.15rem;
+  color: #ffffff;
+}
+
+.promo-subtitle {
+  margin: 4px 0 0 0;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.promo-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  width: 100%;
+}
+
+.promo-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  padding: 8px 6px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  transition: all 0.2s ease;
+}
+
+.promo-btn:hover {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: var(--accent-blue);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.promo-btn svg {
+  width: 44px;
+  height: 44px;
+}
+
+.promo-btn-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.promo-cancel-btn {
+  margin-top: 2px;
+  width: 100%;
 }
 
 .hidden { display: none !important; }
