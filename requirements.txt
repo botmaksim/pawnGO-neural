@@ -1,0 +1,7 @@
+torch>=2.2.0
+python-chess>=1.999
+numpy>=1.24.0
+fastapi>=0.110.0
+uvicorn>=0.28.0
+tqdm>=4.66.0
+pydantic>=2.0.0

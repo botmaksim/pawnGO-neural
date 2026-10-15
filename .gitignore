@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.env
+.venv/
+env/
+venv/
+ENV/
+
+# Data & Checkpoints
+data/raw/
+*.npz
+*.pt
+*.pth
+*.onnx
+*.bin
+*.nnue
+*.log
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
