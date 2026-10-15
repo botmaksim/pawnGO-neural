@@ -438,26 +438,46 @@ body {
   background: rgba(255, 255, 255, 0.1);
 }
 
-.move-counter {
-  font-family: 'Fira Code', monospace;
-  font-size: 0.75rem;
-  color: var(--text-muted);
-}
-
-.replayer-actions {
+.replayer-info {
   display: flex;
-  gap: 6px;
+  align-items: center;
+  gap: 10px;
 }
 
-.btn-sm {
-  padding: 4px 8px;
-  font-size: 0.75rem;
+.branch-pill {
+  font-family: 'Fira Code', monospace;
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  padding: 2px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.branch-pill.hidden {
+  display: none;
+}
+
+.game-actions-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  width: 504px;
+}
+
+.game-actions-bar .btn {
+  font-size: 0.78rem;
+  padding: 6px 4px;
+  white-space: nowrap;
 }
 
 .file-upload-btn {
   cursor: pointer;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
 }
 
 /* Control Panel */

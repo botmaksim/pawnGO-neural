@@ -44,8 +44,8 @@
           <div class="thermometer-track">
             <div id="thermometerFill" class="thermometer-fill" style="height: 50%;"></div>
             <div class="thermometer-midline"></div>
-            <div id="thermometerVal" class="thermometer-val">+0.00</div>
           </div>
+          <div id="thermometerVal" class="thermometer-val">+0.00</div>
           <div class="thermometer-label-bottom">White</div>
         </div>
       </div>
@@ -84,7 +84,7 @@
           </button>
         </div>
 
-        <!-- Move History Replayer Bar -->
+        <!-- Move History Replayer Bar (Navigation Only) -->
         <div class="replayer-bar">
           <div class="replayer-controls">
             <button id="btnReplayStart" class="btn-icon" title="First Move (Home)">
@@ -102,30 +102,32 @@
           </div>
           <div class="replayer-info">
             <span id="moveCounter" class="move-counter">Move 0 / 0</span>
-            <span id="branchNotice" class="branch-pill hidden">Rewound (Next move branches)</span>
+            <span id="branchNotice" class="branch-pill hidden">Rewound</span>
           </div>
-          <div class="replayer-actions">
-            <button id="btnOpenPgnModal" class="btn btn-sm btn-primary" title="Import PGN game from clipboard or file">
-              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-              Import PGN
-            </button>
-            <button id="btnExportPgn" class="btn btn-sm btn-secondary" title="Export game as standard PGN">
-              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              Export PGN
-            </button>
-            <button id="btnSaveGame" class="btn btn-sm btn-secondary" title="Save game to JSON">JSON</button>
-            <label class="btn btn-sm btn-secondary file-upload-btn" title="Load game from JSON">
-              Load
-              <input type="file" id="fileLoadGame" accept=".json" style="display:none;">
-            </label>
-          </div>
+        </div>
+
+        <!-- Game Actions Toolbar (Dedicated 4-button grid) -->
+        <div class="game-actions-bar">
+          <button id="btnOpenPgnModal" class="btn btn-sm btn-primary" title="Import PGN game from clipboard or file">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Import PGN
+          </button>
+          <button id="btnExportPgn" class="btn btn-sm btn-secondary" title="Export game as standard PGN">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export PGN
+          </button>
+          <button id="btnSaveGame" class="btn btn-sm btn-secondary" title="Save game to JSON">Save JSON</button>
+          <label class="btn btn-sm btn-secondary file-upload-btn" title="Load game from JSON">
+            Load JSON
+            <input type="file" id="fileLoadGame" accept=".json" style="display:none;">
+          </label>
         </div>
       </div>
 
       <!-- Right Panels Column -->
       <div class="control-panel">
-        <!-- View 1: Match Arena Panel -->
-        <div id="matchPanel" class="match-panel-container">
+        <!-- View 1: Match Arena Panel (Hidden by default) -->
+        <div id="matchPanel" class="match-panel-container hidden">
           <div class="card">
             <div class="card-header">
               <h3>Engine-vs-Engine Match Setup</h3>
@@ -171,20 +173,10 @@
               <span id="matchReasonText" class="reason-text">Game in progress</span>
             </div>
           </div>
-
-          <!-- Move History Card -->
-          <div class="card">
-            <div class="card-header">
-              <h3>Move Notation History</h3>
-            </div>
-            <div id="moveHistoryList" class="move-history-scroll">
-              <div class="empty-history-text">No moves recorded yet</div>
-            </div>
-          </div>
         </div>
 
-        <!-- View 2: Sandbox & Analysis Panel (Hidden by default or toggled) -->
-        <div id="sandboxPanel" class="sandbox-panel-container hidden">
+        <!-- View 2: Sandbox & Analysis Panel (Active by default) -->
+        <div id="sandboxPanel" class="sandbox-panel-container">
           <div class="card">
             <div class="card-header">
               <h3>Next Move Predictor & AI Move</h3>
@@ -254,6 +246,16 @@
               <button id="btnResetBoard" class="btn btn-secondary">Reset Position</button>
               <button id="btnClearBoard" class="btn btn-danger">Clear Board</button>
             </div>
+          </div>
+        </div>
+
+        <!-- Move History Card (Always visible for both Sandbox and Match Arena) -->
+        <div class="card">
+          <div class="card-header">
+            <h3>Move Notation History</h3>
+          </div>
+          <div id="moveHistoryList" class="move-history-scroll">
+            <div class="empty-history-text">No moves recorded yet</div>
           </div>
         </div>
       </div>

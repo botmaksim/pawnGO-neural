@@ -250,8 +250,11 @@ def evaluate_position(req: EvaluateRequest):
 def compute_single_move(board: chess.Board, model_id: str, allow_illegal: Optional[bool] = None, temperature: float = 0.0) -> Dict:
     t0 = time.time()
     model, meta = get_loaded_model(model_id)
+    model_wants_anarchy = meta.get("allow_illegal", False) if meta else False
     if allow_illegal is None:
-        allow_illegal = meta.get("allow_illegal", False) if meta else False
+        allow_illegal = model_wants_anarchy
+    else:
+        allow_illegal = bool(allow_illegal or model_wants_anarchy)
 
     # 1. UCI Engines
     if meta and meta["category"] == "uci_engine":

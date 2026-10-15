@@ -574,10 +574,10 @@ function updateMoveHistoryUI() {
   if (branchPill) {
     if (currentHistoryIndex < gameHistory.length - 1 && currentHistoryIndex >= 0) {
       branchPill.classList.remove("hidden");
-      branchPill.textContent = `Rewound (${currentHistoryIndex + 1}/${gameHistory.length}) - Next move branches`;
+      branchPill.textContent = `Rewound (${currentHistoryIndex + 1}/${gameHistory.length})`;
     } else if (currentHistoryIndex === -1 && gameHistory.length > 0) {
       branchPill.classList.remove("hidden");
-      branchPill.textContent = `Rewound to Start (0/${gameHistory.length}) - Next move branches`;
+      branchPill.textContent = `Rewound (0/${gameHistory.length})`;
     } else {
       branchPill.classList.add("hidden");
     }
@@ -668,7 +668,7 @@ function jumpToStart() {
 async function predictNextMove() {
   clearPredictionHighlights();
   const modelId = document.getElementById("modelSelect").value;
-  const allowIllegal = document.getElementById("chkAllowIllegal").checked;
+  const isAnarchy = modelId.endsWith("_anarchy") || document.getElementById("chkAllowIllegal").checked;
   const fen = generateFen();
   const commentEl = document.getElementById("aiComment");
   commentEl.textContent = `Analyzing with ${modelId}...`;
@@ -680,7 +680,7 @@ async function predictNextMove() {
       body: JSON.stringify({
         fen,
         model_id: modelId,
-        allow_illegal: allowIllegal
+        allow_illegal: isAnarchy
       })
     });
     if (!res.ok) throw new Error("API error");
@@ -715,7 +715,7 @@ function playPredictedMove() {
 
 async function executeSingleAiMove() {
   const modelId = document.getElementById("modelSelect").value;
-  const allowIllegal = document.getElementById("chkAllowIllegal").checked;
+  const isAnarchy = modelId.endsWith("_anarchy") || document.getElementById("chkAllowIllegal").checked;
   const fen = generateFen();
   const commentEl = document.getElementById("aiComment");
   commentEl.textContent = `Computing move with ${modelId}...`;
@@ -724,7 +724,7 @@ async function executeSingleAiMove() {
     const res = await fetch("/api/ai_move", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ fen, model_id: modelId, allow_illegal: allowIllegal })
+      body: JSON.stringify({ fen, model_id: modelId, allow_illegal: isAnarchy })
     });
     if (!res.ok) throw new Error("API error");
     const data = await res.json();
@@ -986,6 +986,31 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("matchPanel").classList.remove("hidden");
     document.getElementById("sandboxPanel").classList.add("hidden");
   });
+
+  // Bidirectional sync between Model Selection and Anarchy Checkbox
+  const modelSelectEl = document.getElementById("modelSelect");
+  const chkAllowIllegalEl = document.getElementById("chkAllowIllegal");
+  if (modelSelectEl && chkAllowIllegalEl) {
+    modelSelectEl.addEventListener("change", (e) => {
+      const val = e.target.value;
+      chkAllowIllegalEl.checked = val.endsWith("_anarchy");
+    });
+    chkAllowIllegalEl.addEventListener("change", (e) => {
+      const isAnarchy = e.target.checked;
+      const currentVal = modelSelectEl.value;
+      if (isAnarchy && currentVal.endsWith("_legal")) {
+        const targetVal = currentVal.replace("_legal", "_anarchy");
+        if (modelSelectEl.querySelector(`option[value="${targetVal}"]`)) {
+          modelSelectEl.value = targetVal;
+        }
+      } else if (!isAnarchy && currentVal.endsWith("_anarchy")) {
+        const targetVal = currentVal.replace("_anarchy", "_legal");
+        if (modelSelectEl.querySelector(`option[value="${targetVal}"]`)) {
+          modelSelectEl.value = targetVal;
+        }
+      }
+    });
+  }
 
   // Time control dropdown
   document.getElementById("timeControlSelect").addEventListener("change", (e) => {
