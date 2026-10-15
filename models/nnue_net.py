@@ -60,25 +60,54 @@ class NNUENet(nn.Module):
         return round(float(cp), 1)
 
     @torch.no_grad()
-    def select_best_move(self, board: chess.Board, device="cpu"):
+    def select_best_move(self, board: chess.Board, device="cpu", allow_illegal: bool = False):
         """
         1-ply search using the NNUE evaluation to pick the best move.
-        Works for both legal and free-form moves!
+        If allow_illegal is False: picks best move among strictly legal moves.
+        If allow_illegal is True: Anarchy Greedy search across all possible piece moves!
         """
-        legal = list(board.legal_moves)
-        if not legal:
+        if not allow_illegal:
+            legal = list(board.legal_moves)
+            if not legal:
+                return None
+            best_move = legal[0]
+            best_score = -1e9
+            for m in legal:
+                board.push(m)
+                score = -self.evaluate_board(board, device=device)
+                board.pop()
+                if score > best_score:
+                    best_score = score
+                    best_move = m
+            return best_move
+
+        # Anarchy Mode: any friendly piece can move/teleport to any square not occupied by own piece!
+        piece_map = board.piece_map()
+        my_color = board.turn
+        my_squares = [sq for sq, p in piece_map.items() if p.color == my_color]
+        if not my_squares:
             return None
 
-        best_move = legal[0]
+        best_move = None
         best_score = -1e9
 
-        for m in legal:
-            board.push(m)
-            # Eval from opponent perspective, so negate
-            score = -self.evaluate_board(board, device=device)
-            board.pop()
-            if score > best_score:
-                best_score = score
-                best_move = m
+        for from_sq in my_squares:
+            for to_sq in range(64):
+                if to_sq == from_sq:
+                    continue
+                target_piece = piece_map.get(to_sq)
+                if target_piece and target_piece.color == my_color:
+                    continue  # Can't capture own piece
+
+                # Construct virtual anarchy board
+                virtual_board = board.copy(stack=False)
+                p = virtual_board.remove_piece_at(from_sq)
+                virtual_board.set_piece_at(to_sq, p)
+                virtual_board.turn = not my_color
+
+                score = -self.evaluate_board(virtual_board, device=device)
+                if score > best_score:
+                    best_score = score
+                    best_move = chess.Move(from_sq, to_sq)
 
         return best_move

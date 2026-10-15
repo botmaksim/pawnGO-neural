@@ -280,17 +280,18 @@ def compute_single_move(board: chess.Board, model_id: str, allow_illegal: bool =
     # 3. Neural NNUE
     if model is not None and meta and meta["category"] == "neural_nnue":
         try:
-            mv = model.select_best_move(board)
+            mv = model.select_best_move(board, allow_illegal=allow_illegal)
             dt_ms = int((time.time() - t0) * 1000)
             if mv:
                 score = model.evaluate_board(board)
+                is_leg = mv in board.legal_moves
                 return {
                     "engine_id": model_id,
                     "name": meta["name"],
                     "move": mv.uci(),
                     "from_sq": chess.square_name(mv.from_square),
                     "to_sq": chess.square_name(mv.to_square),
-                    "is_legal": True,
+                    "is_legal": is_leg,
                     "duration_ms": dt_ms,
                     "eval": score
                 }

@@ -1,20 +1,33 @@
-// pawnGO-Neural Anarchy Chess Sandbox (sandbox branch)
-// Features: Free-form drag & drop, Dual Thermometers (Stockfish vs pawnGO), 8-engine Comparison
+// pawnGO-Neural Anarchy Chess Sandbox
+// Vector SVG chess piece renderer, dual thermometers, and multi-engine comparative analysis.
 
-const PIECE_SYMBOLS = {
-  'P': '♙', 'N': '♘', 'B': '♗', 'R': '♖', 'Q': '♕', 'K': '♔',
-  'p': '♟', 'n': '♞', 'b': '♝', 'r': '♜', 'q': '♛', 'k': '♚'
+const PIECE_SVGS = {
+  // White pieces: light fill with dark outline
+  'P': `<svg viewBox="0 0 45 45" class="svg-piece white-piece"><path d="m22.5 9c-2.21 0-4 1.79-4 4 0 .89.29 1.71.78 2.38C17.33 16.5 16 18.59 16 21c0 2.03.94 3.84 2.41 5.03-3 1.06-7.41 5.55-7.41 13.47h23c0-7.92-4.41-12.41-7.41-13.47 1.47-1.19 2.41-3 2.41-5.03 0-2.41-1.33-4.5-3.28-5.62.49-.67.78-1.49.78-2.38 0-2.21-1.79-4-4-4z" fill="#f8fafc" stroke="#0f172a" stroke-width="1.5" stroke-linecap="round"/></svg>`,
+  'N': `<svg viewBox="0 0 45 45" class="svg-piece white-piece"><path d="m22 10c10.5 1 16.5 8 16 29H15c0-9 10-6.5 8-21" fill="#f8fafc" stroke="#0f172a" stroke-width="1.5"/><path d="m24 18c.38 2.91-5.55 7.37-8 9-3 2-2.82 4.34-5 4-1.042-.94 1.41-3.04 0-3-1 0-.932 1.27-2 2-1 1-1.602 1.3-2 3-.5 1-1.036 1.41-2 2-1.002.6-1.5 1.5-1.5 2.5 0 2.5 2.5 3 2.5 3s1-2.5 3-2c1.5.38 2.5 2.5 4 2.5 2 0 4-1.5 4-1.5s2.5 1.5 4.5 1.5c3 0 5-1.5 5-1.5s2 1.5 4 1.5c2.5 0 3.5-1.5 3.5-1.5s1 1.5 3 1.5c3 0 4-2 4-2v-4.5c0-4-3-8-3-8s1-1 1-3c0-3-4-7-4-7z" fill="#f8fafc" stroke="#0f172a" stroke-width="1.5"/></svg>`,
+  'B': `<svg viewBox="0 0 45 45" class="svg-piece white-piece"><g fill="#f8fafc" stroke="#0f172a" stroke-width="1.5" stroke-linecap="round"><path d="m9 36c3.39-.97 10.11.43 13.5-2 3.39 2.43 10.11 1.03 13.5 2 0 0 1.65.54 3 2-.68.97-1.65.99-3 .5-3.39-.97-10.11.46-13.5-1-3.39 1.46-10.11.03-13.5 1-1.354.49-2.323.47-3-.5 1.354-1.94 3-2 3-2z"/><path d="m15 32c2.5 2.5 12.5 2.5 15 0 .5-1.5 0-2 0-2 0-2.5-2.5-4-2.5-4 5.5-1.5 6-11.5-5-15.5-11 4-10.5 14-5 15.5 0 0-2.5 1.5-2.5 4 0 0-.5.5 0 2z"/><path d="m25 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 1 1 5 0z"/><path d="M17.5 26h10M22.5 21v10" stroke="#0f172a" stroke-width="1.5"/></g></svg>`,
+  'R': `<svg viewBox="0 0 45 45" class="svg-piece white-piece"><g fill="#f8fafc" stroke="#0f172a" stroke-width="1.5" stroke-linecap="round"><path d="m9 39h27v-3H9v3z"/><path d="m12 36v-4h21v4H12z"/><path d="m14 29.5v-13h17v13H14z"/><path d="m14 16.5-3-6.5h23l-3 6.5H14z"/><path d="m11 10h4v4h-4zM20.5 10h4v4h-4zM30 10h4v4h-4z"/></g></svg>`,
+  'Q': `<svg viewBox="0 0 45 45" class="svg-piece white-piece"><g fill="#f8fafc" stroke="#0f172a" stroke-width="1.5" stroke-linecap="round"><path d="m8 12a2 2 0 1 1-4 0 2 2 0 1 1 4 0zM24.5 7.5a2 2 0 1 1-4 0 2 2 0 1 1 4 0zM41 12a2 2 0 1 1-4 0 2 2 0 1 1 4 0zM16 8.5a2 2 0 1 1-4 0 2 2 0 1 1 4 0zM33 8.5a2 2 0 1 1-4 0 2 2 0 1 1 4 0z"/><path d="m9 26c8.5-1.5 21-1.5 27 0l2-12-7 11V11l-5.5 13.5-3-15-3 15-5.5-13.5V25l-7-11 2 12z"/><path d="m9 26c0 2 1.5 2 2.5 4 1 1.5 1 1 .5 3.5-1.5 1-1.5 2.5-1.5 2.5-1.5 1.5.5 2.5.5 2.5 6.5 1 21 1 28 0 0 0 2-1 .5-2.5 0 0 0-1.5-1.5-2.5-.5-2.5-.5-2 .5-3.5 1-2 2.5-2 2.5-4-8.5-1.5-18.5-1.5-27 0z"/><path d="m11 38.5h23"/></g></svg>`,
+  'K': `<svg viewBox="0 0 45 45" class="svg-piece white-piece"><g fill="#f8fafc" stroke="#0f172a" stroke-width="1.5" stroke-linecap="round"><path d="m22.5 11.63V6M20 8h5"/><path d="m22.5 25s4.5-7.5 3-10.5c0 0-1-2.5-3-2.5s-3 2.5-3 2.5c-1.5 3 3 10.5 3 10.5"/><path d="m11.5 37c5.5 3.5 15.5 3.5 21 0v-7s9-4.5 6-10.5c-4-6.5-13.5-3.5-16 4V23.5c-2.5-7.5-12-10.5-16-4-3 6 5 10.5 5 10.5v7z"/><path d="m11.5 30c5.5-3 15.5-3 21 0M11.5 33.5c5.5-3 15.5-3 21 0M11.5 37c5.5-3 15.5-3 21 0"/></g></svg>`,
+
+  // Black pieces: dark slate fill with light outline
+  'p': `<svg viewBox="0 0 45 45" class="svg-piece black-piece"><path d="m22.5 9c-2.21 0-4 1.79-4 4 0 .89.29 1.71.78 2.38C17.33 16.5 16 18.59 16 21c0 2.03.94 3.84 2.41 5.03-3 1.06-7.41 5.55-7.41 13.47h23c0-7.92-4.41-12.41-7.41-13.47 1.47-1.19 2.41-3 2.41-5.03 0-2.41-1.33-4.5-3.28-5.62.49-.67.78-1.49.78-2.38 0-2.21-1.79-4-4-4z" fill="#1e293b" stroke="#cbd5e1" stroke-width="1.5" stroke-linecap="round"/></svg>`,
+  'n': `<svg viewBox="0 0 45 45" class="svg-piece black-piece"><path d="m22 10c10.5 1 16.5 8 16 29H15c0-9 10-6.5 8-21" fill="#1e293b" stroke="#cbd5e1" stroke-width="1.5"/><path d="m24 18c.38 2.91-5.55 7.37-8 9-3 2-2.82 4.34-5 4-1.042-.94 1.41-3.04 0-3-1 0-.932 1.27-2 2-1 1-1.602 1.3-2 3-.5 1-1.036 1.41-2 2-1.002.6-1.5 1.5-1.5 2.5 0 2.5 2.5 3 2.5 3s1-2.5 3-2c1.5.38 2.5 2.5 4 2.5 2 0 4-1.5 4-1.5s2.5 1.5 4.5 1.5c3 0 5-1.5 5-1.5s2 1.5 4 1.5c2.5 0 3.5-1.5 3.5-1.5s1 1.5 3 1.5c3 0 4-2 4-2v-4.5c0-4-3-8-3-8s1-1 1-3c0-3-4-7-4-7z" fill="#1e293b" stroke="#cbd5e1" stroke-width="1.5"/></svg>`,
+  'b': `<svg viewBox="0 0 45 45" class="svg-piece black-piece"><g fill="#1e293b" stroke="#cbd5e1" stroke-width="1.5" stroke-linecap="round"><path d="m9 36c3.39-.97 10.11.43 13.5-2 3.39 2.43 10.11 1.03 13.5 2 0 0 1.65.54 3 2-.68.97-1.65.99-3 .5-3.39-.97-10.11.46-13.5-1-3.39 1.46-10.11.03-13.5 1-1.354.49-2.323.47-3-.5 1.354-1.94 3-2 3-2z"/><path d="m15 32c2.5 2.5 12.5 2.5 15 0 .5-1.5 0-2 0-2 0-2.5-2.5-4-2.5-4 5.5-1.5 6-11.5-5-15.5-11 4-10.5 14-5 15.5 0 0-2.5 1.5-2.5 4 0 0-.5.5 0 2z"/><path d="m25 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 1 1 5 0z"/><path d="M17.5 26h10M22.5 21v10" stroke="#cbd5e1" stroke-width="1.5"/></g></svg>`,
+  'r': `<svg viewBox="0 0 45 45" class="svg-piece black-piece"><g fill="#1e293b" stroke="#cbd5e1" stroke-width="1.5" stroke-linecap="round"><path d="m9 39h27v-3H9v3z"/><path d="m12 36v-4h21v4H12z"/><path d="m14 29.5v-13h17v13H14z"/><path d="m14 16.5-3-6.5h23l-3 6.5H14z"/><path d="m11 10h4v4h-4zM20.5 10h4v4h-4zM30 10h4v4h-4z"/></g></svg>`,
+  'q': `<svg viewBox="0 0 45 45" class="svg-piece black-piece"><g fill="#1e293b" stroke="#cbd5e1" stroke-width="1.5" stroke-linecap="round"><path d="m8 12a2 2 0 1 1-4 0 2 2 0 1 1 4 0zM24.5 7.5a2 2 0 1 1-4 0 2 2 0 1 1 4 0zM41 12a2 2 0 1 1-4 0 2 2 0 1 1 4 0zM16 8.5a2 2 0 1 1-4 0 2 2 0 1 1 4 0zM33 8.5a2 2 0 1 1-4 0 2 2 0 1 1 4 0z"/><path d="m9 26c8.5-1.5 21-1.5 27 0l2-12-7 11V11l-5.5 13.5-3-15-3 15-5.5-13.5V25l-7-11 2 12z"/><path d="m9 26c0 2 1.5 2 2.5 4 1 1.5 1 1 .5 3.5-1.5 1-1.5 2.5-1.5 2.5-1.5 1.5.5 2.5.5 2.5 6.5 1 21 1 28 0 0 0 2-1 .5-2.5 0 0 0-1.5-1.5-2.5-.5-2.5-.5-2 .5-3.5 1-2 2.5-2 2.5-4-8.5-1.5-18.5-1.5-27 0z"/><path d="m11 38.5h23"/></g></svg>`,
+  'k': `<svg viewBox="0 0 45 45" class="svg-piece black-piece"><g fill="#1e293b" stroke="#cbd5e1" stroke-width="1.5" stroke-linecap="round"><path d="m22.5 11.63V6M20 8h5"/><path d="m22.5 25s4.5-7.5 3-10.5c0 0-1-2.5-3-2.5s-3 2.5-3 2.5c-1.5 3 3 10.5 3 10.5"/><path d="m11.5 37c5.5 3.5 15.5 3.5 21 0v-7s9-4.5 6-10.5c-4-6.5-13.5-3.5-16 4V23.5c-2.5-7.5-12-10.5-16-4-3 6 5 10.5 5 10.5v7z"/><path d="m11.5 30c5.5-3 15.5-3 21 0M11.5 33.5c5.5-3 15.5-3 21 0M11.5 37c5.5-3 15.5-3 21 0"/></g></svg>`
 };
 
 const STARTING_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 let boardState = {};
-let activeTurn = 'w'; // 'w' or 'b'
+let activeTurn = 'w';
 let draggedPiece = null;
 let dragSourceSq = null;
 let lastMoveSq = null;
 let selectedSq = null;
-let activeThermoEngine = 'stockfish'; // 'stockfish' or 'pawngo'
+let activeThermoEngine = 'stockfish';
 
 function parseFen(fen) {
   const parts = fen.split(' ');
@@ -96,19 +109,19 @@ function renderBoard() {
       }
 
       const piece = boardState[sq];
-      if (piece) {
-        const pieceEl = document.createElement("span");
-        pieceEl.className = `piece ${piece === piece.toUpperCase() ? 'white-piece' : 'black-piece'}`;
-        pieceEl.textContent = PIECE_SYMBOLS[piece];
-        pieceEl.draggable = true;
+      if (piece && PIECE_SVGS[piece]) {
+        const pieceContainer = document.createElement("div");
+        pieceContainer.className = "piece-wrapper";
+        pieceContainer.draggable = true;
+        pieceContainer.innerHTML = PIECE_SVGS[piece];
 
-        pieceEl.addEventListener("dragstart", (e) => {
+        pieceContainer.addEventListener("dragstart", (e) => {
           draggedPiece = piece;
           dragSourceSq = sq;
           e.dataTransfer.setData("text/plain", piece);
         });
 
-        sqEl.appendChild(pieceEl);
+        sqEl.appendChild(pieceContainer);
       }
 
       sqEl.addEventListener("dragover", (e) => e.preventDefault());
@@ -122,6 +135,7 @@ function renderBoard() {
         boardState[sq] = draggedPiece;
         lastMoveSq = sq;
 
+        // Auto side-to-move detection: moved white piece -> black turn, moved black piece -> white turn
         const pieceColor = draggedPiece === draggedPiece.toUpperCase() ? 'w' : 'b';
         activeTurn = (pieceColor === 'w') ? 'b' : 'w';
 
@@ -161,6 +175,47 @@ function renderBoard() {
   const currentFen = generateFen();
   document.getElementById("fenInput").value = currentFen;
   updateTurnIndicator();
+}
+
+function renderPiecePalette() {
+  const paletteEl = document.getElementById("piecePalette");
+  if (!paletteEl) return;
+  paletteEl.innerHTML = "";
+
+  const whiteRow = document.createElement("div");
+  whiteRow.className = "palette-row";
+  ['P', 'N', 'B', 'R', 'Q', 'K'].forEach(p => {
+    const el = document.createElement("div");
+    el.className = "palette-piece";
+    el.draggable = true;
+    el.innerHTML = PIECE_SVGS[p];
+    el.dataset.piece = p;
+    el.addEventListener("dragstart", (e) => {
+      draggedPiece = p;
+      dragSourceSq = null;
+      e.dataTransfer.setData("text/plain", p);
+    });
+    whiteRow.appendChild(el);
+  });
+
+  const blackRow = document.createElement("div");
+  blackRow.className = "palette-row";
+  ['p', 'n', 'b', 'r', 'q', 'k'].forEach(p => {
+    const el = document.createElement("div");
+    el.className = "palette-piece";
+    el.draggable = true;
+    el.innerHTML = PIECE_SVGS[p];
+    el.dataset.piece = p;
+    el.addEventListener("dragstart", (e) => {
+      draggedPiece = p;
+      dragSourceSq = null;
+      e.dataTransfer.setData("text/plain", p);
+    });
+    blackRow.appendChild(el);
+  });
+
+  paletteEl.appendChild(whiteRow);
+  paletteEl.appendChild(blackRow);
 }
 
 function updateTurnIndicator() {
@@ -214,7 +269,7 @@ async function triggerEvaluate(lastMovedColor = null) {
       legalityIndicator.textContent = "Standard Board";
     } else {
       legalityIndicator.className = "legality-pill illegal";
-      legalityIndicator.textContent = "Anarchy Board ⚠️";
+      legalityIndicator.textContent = "Anarchy Board";
     }
   } catch (e) {
     if (e.name !== "AbortError") {
@@ -258,12 +313,12 @@ async function makeAiMove() {
 
       renderBoard();
       triggerEvaluate(pColor);
-      aiComment.textContent = `${data.name}: ${fromSq} ➔ ${toSq} (${data.duration_ms}ms) ${data.is_legal ? '✓' : '(Illegal ⚠️)'}`;
+      aiComment.textContent = `${data.name}: ${fromSq} -> ${toSq} (${data.duration_ms}ms) [${data.is_legal ? 'Legal' : 'Illegal'}]`;
     } else {
-      aiComment.textContent = `${data.name} attempted ${data.move}, but square ${fromSq} was empty!`;
+      aiComment.textContent = `${data.name} attempted ${data.move}, but square ${fromSq} was empty`;
     }
   } catch (e) {
-    aiComment.textContent = `AI Error: ${e.message}`;
+    aiComment.textContent = `Error: ${e.message}`;
   }
 }
 
@@ -271,7 +326,7 @@ async function compareSelectedEngines() {
   const checkedBoxes = document.querySelectorAll(".cmp-engine-chk:checked");
   const engineIds = Array.from(checkedBoxes).map(cb => cb.value);
   if (engineIds.length === 0) {
-    alert("Please select at least one engine to compare!");
+    alert("Please select at least one engine to compare.");
     return;
   }
 
@@ -308,7 +363,7 @@ async function compareSelectedEngines() {
       const tdMove = document.createElement("td");
       const badge = document.createElement("span");
       badge.className = `cmp-move-badge ${r.is_legal ? '' : 'illegal'}`;
-      badge.textContent = `${r.from_sq} ➔ ${r.to_sq}`;
+      badge.textContent = `${r.from_sq} -> ${r.to_sq}`;
       tdMove.appendChild(badge);
 
       const tdEval = document.createElement("td");
@@ -332,19 +387,10 @@ async function compareSelectedEngines() {
 
 document.addEventListener("DOMContentLoaded", () => {
   parseFen(STARTING_FEN);
+  renderPiecePalette();
   renderBoard();
   triggerEvaluate();
 
-  // Palette dragging
-  document.querySelectorAll(".palette-piece").forEach(el => {
-    el.addEventListener("dragstart", (e) => {
-      draggedPiece = el.dataset.piece;
-      dragSourceSq = null;
-      e.dataTransfer.setData("text/plain", draggedPiece);
-    });
-  });
-
-  // Thermometer Source Toggle
   document.getElementById("btnThermoSF").addEventListener("click", () => {
     activeThermoEngine = "stockfish";
     document.getElementById("btnThermoSF").classList.add("active");
@@ -359,7 +405,6 @@ document.addEventListener("DOMContentLoaded", () => {
     triggerEvaluate();
   });
 
-  // Buttons
   document.getElementById("btnAiMove").addEventListener("click", makeAiMove);
   document.getElementById("btnCompareEngines").addEventListener("click", compareSelectedEngines);
 
@@ -388,8 +433,8 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("btnCopyFen").addEventListener("click", () => {
     const fen = document.getElementById("fenInput").value;
     navigator.clipboard.writeText(fen);
-    const orig = document.getElementById("btnCopyFen").textContent;
-    document.getElementById("btnCopyFen").textContent = "✓";
-    setTimeout(() => document.getElementById("btnCopyFen").textContent = orig, 1200);
+    const orig = document.getElementById("btnCopyFen").innerHTML;
+    document.getElementById("btnCopyFen").textContent = "Copied!";
+    setTimeout(() => document.getElementById("btnCopyFen").innerHTML = orig, 1200);
   });
 });
