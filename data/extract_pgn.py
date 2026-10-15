@@ -128,6 +128,7 @@ def parse_pgn_files(
     all_moves = []
     all_evals = []
     all_results = []
+    all_game_ids = []
 
     phase_counts = {"opening": 0, "middlegame": 0, "endgame": 0}
     total_games_parsed = 0
@@ -244,6 +245,7 @@ def parse_pgn_files(
                         all_moves.append(mv_idx)
                         all_evals.append(norm_eval)
                         all_results.append(result_val)
+                        all_game_ids.append(total_games_parsed)
                         phase_counts[phase] += 1
                         total_positions_extracted += 1
 
@@ -277,6 +279,7 @@ def parse_pgn_files(
     moves_arr = np.array(all_moves, dtype=np.int32)
     evals_arr = np.array(all_evals, dtype=np.float32)
     results_arr = np.array(all_results, dtype=np.float32)
+    game_ids_arr = np.array(all_game_ids, dtype=np.int32)
 
     os.makedirs(os.path.dirname(os.path.abspath(output_file)), exist_ok=True)
     np.savez_compressed(
@@ -284,7 +287,8 @@ def parse_pgn_files(
         boards=boards_arr,
         moves=moves_arr,
         evals=evals_arr,
-        results=results_arr
+        results=results_arr,
+        game_ids=game_ids_arr
     )
     file_mb = os.path.getsize(output_file) / (1024 * 1024)
     print(f"Saved dataset to: {output_file} ({file_mb:.1f} MB)")
