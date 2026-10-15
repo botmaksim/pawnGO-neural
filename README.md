@@ -1,4 +1,4 @@
-# pawnGO-Neural: Interactive Sandbox & Arena 🎮♟️
+# pawnGO-Neural: Interactive Sandbox & Arena
 
 Interactive multi-engine chess laboratory and anarchy testing playground.
 
@@ -11,8 +11,8 @@ Interactive multi-engine chess laboratory and anarchy testing playground.
 
 2. **Dynamic Turn Detection & Evaluation**:
    - The sandbox automatically tracks who made the last move:
-     - Moved a White piece $\to$ Side to move becomes **Black** (`b`).
-     - Moved a Black piece $\to$ Side to move becomes **White** (`w`).
+     - Moved a White piece -> Side to move becomes **Black** (`b`).
+     - Moved a Black piece -> Side to move becomes **White** (`w`).
    - Manual override toggle (`Flip Turn`) to test either side's perspective.
 
 3. **Dual Thermometer Evaluation**:
@@ -23,14 +23,14 @@ Interactive multi-engine chess laboratory and anarchy testing playground.
 
 4. **8-Engine Comparison Matrix**:
    - Select multiple engines and compare their candidate moves and evaluations simultaneously on the current position:
-     - ⚔️ **pawnGO (C++ Engine)**: $\alpha$-$\beta$ search engine with PVS and TT.
-     - 🤖 **Stockfish 17.1**: World champion reference engine.
-     - 🧠 **Policy: pawnGO (All Moves)**: Behavioral clone of pawnGO.
-     - 🌟 **Policy: pawnGO (Wins Only)**: Trained exclusively on pawnGO's winning games.
-     - 👑 **Policy: Grandmaster (Winners)**: Trained on all winners of the tournament.
-     - ⚖️ **NNUE: pawnGO (All Moves)**: 768 $\to$ 128 $\to$ 32 $\to$ 1 Value net.
-     - 💎 **NNUE: pawnGO (Wins Only)**: Value net trained on pawnGO victories.
-     - 🏆 **NNUE: Grandmaster (Winners)**: Value net trained on grandmaster positions.
+     - **pawnGO (C++ Engine)**: Alpha-beta search engine with PVS and TT.
+     - **Stockfish 17.1**: World champion reference engine.
+     - **Policy: pawnGO (All Moves)**: Behavioral clone of pawnGO.
+     - **Policy: pawnGO (Wins & Draws)**: Trained on pawnGO positive performance.
+     - **Policy: Grandmaster (Winners & Draws)**: Trained on all winners of the tournament.
+     - **NNUE: pawnGO (All Moves)**: 768 -> 128 -> 32 -> 1 Value net.
+     - **NNUE: pawnGO (Wins & Draws)**: Value net trained on pawnGO positive results.
+     - **NNUE: Grandmaster (Winners & Draws)**: Value net trained on grandmaster positions.
 
 ---
 
@@ -56,7 +56,7 @@ Edit `web/engines_config.json` if your binary paths differ:
 ```bash
 python3 web/app.py
 ```
-Open **`http://localhost:8080`** in your browser!
+Open **`http://localhost:8080`** in your browser.
 
 ---
 

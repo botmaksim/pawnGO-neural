@@ -108,6 +108,7 @@ def parse_pgn_files(
     pgn_dir: str,
     output_file: str,
     target_mode: str = "winner-only",
+    include_draws: bool = True,
     max_endgame_per_game: int = 12,
     filter_dead_draws: bool = True,
     max_games: int = None
@@ -119,6 +120,7 @@ def parse_pgn_files(
 
     print(f"Found {len(pgn_files)} PGN files in {pgn_dir}")
     print(f"Target Mode               : {target_mode.upper()}")
+    print(f"Include Drawn Games       : {include_draws}")
     print(f"Max Endgame Moves / Game  : {max_endgame_per_game}")
     print(f"Filter Dead Endgame Draws : {filter_dead_draws}")
 
@@ -173,8 +175,12 @@ def parse_pgn_files(
                         if target_mode == "winner-only":
                             if winning_color is not None and turn != winning_color:
                                 should_record = False
-                        elif target_mode == "pawngo-wins":
-                            if pawngo_color is None or winning_color != pawngo_color or turn != pawngo_color:
+                            # Draws are recorded for both sides if include_draws is True
+                            elif winning_color is None and not include_draws:
+                                should_record = False
+                        elif target_mode in ("pawngo-wins", "pawngo-positive"):
+                            is_positive = (winning_color == pawngo_color) or (include_draws and result_val == 0.5)
+                            if pawngo_color is None or not is_positive or turn != pawngo_color:
                                 should_record = False
                         elif target_mode == "pawngo-all":
                             if pawngo_color is None or turn != pawngo_color:
@@ -282,10 +288,11 @@ if __name__ == "__main__":
     parser.add_argument("--out", default="data/chess_dataset.npz", help="Output .npz file")
     parser.add_argument(
         "--target-mode",
-        choices=["winner-only", "pawngo-wins", "pawngo-all", "all"],
+        choices=["winner-only", "pawngo-wins", "pawngo-positive", "pawngo-all", "all"],
         default="winner-only",
-        help="Target training source: winner moves, pawnGO wins, pawnGO all, or all"
+        help="Target training source: winner moves, pawnGO wins/positive, pawnGO all, or all"
     )
+    parser.add_argument("--no-draws", dest="include_draws", action="store_false", help="Exclude drawn games")
     parser.add_argument("--max-endgame-per-game", type=int, default=12, help="Cap maximum endgame moves per game")
     parser.add_argument("--no-filter-draws", dest="filter_dead_draws", action="store_false", help="Don't filter dead draws")
     parser.add_argument("--max-games", type=int, default=None, help="Limit number of games for quick testing")
@@ -295,6 +302,7 @@ if __name__ == "__main__":
         args.pgn_dir,
         args.out,
         target_mode=args.target_mode,
+        include_draws=args.include_draws,
         max_endgame_per_game=args.max_endgame_per_game,
         filter_dead_draws=args.filter_dead_draws,
         max_games=args.max_games
