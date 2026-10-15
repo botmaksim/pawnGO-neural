@@ -3,9 +3,10 @@
 Interactive Web Sandbox Backend for pawnGO-Neural (sandbox branch).
 Features:
 - Free-form anarchy chess move support.
-- Dual evaluation thermometer: switch between Stockfish 17.1 and pawnGO HCE engine!
-- 8 Engines catalog (6 Neural Models + C++ pawnGO + Stockfish 17.1).
-- Multi-engine comparison matrix: select multiple engines and compare their candidate moves & evaluations side-by-side.
+- Dual evaluation thermometer: switch between Stockfish 17.1 and pawnGO HCE engine.
+- 14 Engines catalog (6 Neural Models x 2 Modes [Legal/Anarchy] + C++ pawnGO + Stockfish 17.1).
+- 2-Engine automated Match Arena with custom Anarchy termination rules (Regicide, Annihilation, Stalemate, 3-Fold Repetition, Move Limits).
+- Multi-engine comparison matrix.
 - Clean external UCI connections configured via web/engines_config.json.
 """
 
@@ -20,7 +21,7 @@ import torch
 import numpy as np
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 from typing import Optional, List, Dict
 
@@ -49,29 +50,38 @@ STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
 os.makedirs(STATIC_DIR, exist_ok=True)
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
-# 8 Engines Catalog
+# 14 Engine Variants Catalog
 MODELS_CATALOG = {
-    "policy_pawngo_all": {"name": "Policy: pawnGO (All Moves)", "category": "neural_policy", "path": os.path.join(BASE_DIR, "models/policy_pawngo_all.pt")},
-    "policy_pawngo_wins": {"name": "Policy: pawnGO (Wins Only)", "category": "neural_policy", "path": os.path.join(BASE_DIR, "models/policy_pawngo_wins.pt")},
-    "policy_winner_only": {"name": "Policy: Grandmaster (Winners)", "category": "neural_policy", "path": os.path.join(BASE_DIR, "models/policy_winner_only.pt")},
-    "nnue_pawngo_all": {"name": "NNUE: pawnGO (All Moves)", "category": "neural_nnue", "path": os.path.join(BASE_DIR, "models/nnue_pawngo_all.pt")},
-    "nnue_pawngo_wins": {"name": "NNUE: pawnGO (Wins Only)", "category": "neural_nnue", "path": os.path.join(BASE_DIR, "models/nnue_pawngo_wins.pt")},
-    "nnue_winner_only": {"name": "NNUE: Grandmaster (Winners)", "category": "neural_nnue", "path": os.path.join(BASE_DIR, "models/nnue_winner_only.pt")},
-    "pawngo_cpp": {"name": "pawnGO (C++ Search Engine)", "category": "uci_engine", "path": config["pawngo_path"]},
-    "stockfish": {"name": "Stockfish 17.1 (Grandmaster)", "category": "uci_engine", "path": config["stockfish_path"]}
+    "pawngo_cpp": {"name": "pawnGO C++ (Alpha-Beta)", "category": "uci_engine", "path": config["pawngo_path"], "allow_illegal": False},
+    "stockfish": {"name": "Stockfish 17.1 (Grandmaster)", "category": "uci_engine", "path": config["stockfish_path"], "allow_illegal": False},
+
+    "policy_pawngo_all_legal": {"base_id": "policy_pawngo_all", "name": "Policy: pawnGO All (Legal)", "category": "neural_policy", "path": os.path.join(BASE_DIR, "models/policy_pawngo_all.pt"), "allow_illegal": False},
+    "policy_pawngo_all_anarchy": {"base_id": "policy_pawngo_all", "name": "Policy: pawnGO All (Anarchy)", "category": "neural_policy", "path": os.path.join(BASE_DIR, "models/policy_pawngo_all.pt"), "allow_illegal": True},
+    "policy_pawngo_wins_legal": {"base_id": "policy_pawngo_wins", "name": "Policy: pawnGO Wins (Legal)", "category": "neural_policy", "path": os.path.join(BASE_DIR, "models/policy_pawngo_wins.pt"), "allow_illegal": False},
+    "policy_pawngo_wins_anarchy": {"base_id": "policy_pawngo_wins", "name": "Policy: pawnGO Wins (Anarchy)", "category": "neural_policy", "path": os.path.join(BASE_DIR, "models/policy_pawngo_wins.pt"), "allow_illegal": True},
+    "policy_winner_only_legal": {"base_id": "policy_winner_only", "name": "Policy: Grandmaster (Legal)", "category": "neural_policy", "path": os.path.join(BASE_DIR, "models/policy_winner_only.pt"), "allow_illegal": False},
+    "policy_winner_only_anarchy": {"base_id": "policy_winner_only", "name": "Policy: Grandmaster (Anarchy)", "category": "neural_policy", "path": os.path.join(BASE_DIR, "models/policy_winner_only.pt"), "allow_illegal": True},
+
+    "nnue_pawngo_all_legal": {"base_id": "nnue_pawngo_all", "name": "NNUE: pawnGO All (Legal)", "category": "neural_nnue", "path": os.path.join(BASE_DIR, "models/nnue_pawngo_all.pt"), "allow_illegal": False},
+    "nnue_pawngo_all_anarchy": {"base_id": "nnue_pawngo_all", "name": "NNUE: pawnGO All (Anarchy)", "category": "neural_nnue", "path": os.path.join(BASE_DIR, "models/nnue_pawngo_all.pt"), "allow_illegal": True},
+    "nnue_pawngo_wins_legal": {"base_id": "nnue_pawngo_wins", "name": "NNUE: pawnGO Wins (Legal)", "category": "neural_nnue", "path": os.path.join(BASE_DIR, "models/nnue_pawngo_wins.pt"), "allow_illegal": False},
+    "nnue_pawngo_wins_anarchy": {"base_id": "nnue_pawngo_wins", "name": "NNUE: pawnGO Wins (Anarchy)", "category": "neural_nnue", "path": os.path.join(BASE_DIR, "models/nnue_pawngo_wins.pt"), "allow_illegal": True},
+    "nnue_winner_only_legal": {"base_id": "nnue_winner_only", "name": "NNUE: Grandmaster (Legal)", "category": "neural_nnue", "path": os.path.join(BASE_DIR, "models/nnue_winner_only.pt"), "allow_illegal": False},
+    "nnue_winner_only_anarchy": {"base_id": "nnue_winner_only", "name": "NNUE: Grandmaster (Anarchy)", "category": "neural_nnue", "path": os.path.join(BASE_DIR, "models/nnue_winner_only.pt"), "allow_illegal": True}
 }
 
 loaded_models = {}
 
-def get_loaded_model(model_id: str):
-    if model_id not in MODELS_CATALOG:
+def get_loaded_model(model_key: str):
+    if model_key not in MODELS_CATALOG:
         return None, None
-    meta = MODELS_CATALOG[model_id]
+    meta = MODELS_CATALOG[model_key]
     if meta["category"] == "uci_engine":
         return meta["category"], meta
 
-    if model_id in loaded_models:
-        return loaded_models[model_id], meta
+    cache_key = meta.get("base_id", model_key)
+    if cache_key in loaded_models:
+        return loaded_models[cache_key], meta
 
     m_path = meta["path"]
     if os.path.exists(m_path):
@@ -80,19 +90,18 @@ def get_loaded_model(model_id: str):
                 m = PolicyNet(in_channels=16)
                 m.load_state_dict(torch.load(m_path, map_location="cpu"))
                 m.eval()
-                loaded_models[model_id] = m
+                loaded_models[cache_key] = m
                 return m, meta
             elif meta["category"] == "neural_nnue":
                 m = NNUENet()
                 m.load_state_dict(torch.load(m_path, map_location="cpu"))
                 m.eval()
-                loaded_models[model_id] = m
+                loaded_models[cache_key] = m
                 return m, meta
         except Exception as e:
-            print(f"Error loading {model_id}: {e}")
+            print(f"Error loading {model_key}: {e}")
     return None, meta
 
-# UCI Engine Process Handlers
 sf_engine = None
 pawngo_engine = None
 
@@ -119,14 +128,14 @@ def get_uci_engine(engine_name: str):
 
 class EvaluateRequest(BaseModel):
     fen: str
-    last_moved_color: Optional[str] = None  # "w" or "b"
-    eval_engine: Optional[str] = "stockfish"  # "stockfish" or "pawngo"
+    last_moved_color: Optional[str] = None
+    eval_engine: Optional[str] = "stockfish"
 
 class AIMoveRequest(BaseModel):
     fen: str
     model_id: str
     temperature: float = 0.0
-    allow_illegal: bool = False
+    allow_illegal: Optional[bool] = None
     last_moved_color: Optional[str] = None
 
 class CompareEnginesRequest(BaseModel):
@@ -134,6 +143,13 @@ class CompareEnginesRequest(BaseModel):
     engine_ids: List[str]
     allow_illegal: bool = False
     last_moved_color: Optional[str] = None
+
+class MatchStepRequest(BaseModel):
+    fen: str
+    white_engine: str
+    black_engine: str
+    move_count: int = 1
+    history_fens: List[str] = []
 
 @app.get("/")
 def read_root():
@@ -151,12 +167,12 @@ def list_engines():
             "id": m_id,
             "name": meta["name"],
             "category": meta["category"],
+            "allow_illegal": meta.get("allow_illegal", False),
             "is_ready": ready
         })
     return res
 
 def evaluate_anarchy_heuristic(fen: str) -> float:
-    """Fallback evaluator for illegal positions (multiple kings, missing kings, etc.)"""
     piece_vals = {'p': 1.0, 'n': 3.2, 'b': 3.3, 'r': 5.0, 'q': 9.5, 'k': 20.0}
     placement = fen.split()[0]
     score = 0.0
@@ -195,7 +211,6 @@ def evaluate_position(req: EvaluateRequest):
     try:
         board = chess.Board(adjusted_fen)
         if board.is_valid() and engine is not None:
-            # Query engine for 35ms (depth 10-12)
             limit = chess.engine.Limit(time=0.035, depth=10)
             info = engine.analyse(board, limit)
             score_obj = info.get("score")
@@ -232,11 +247,13 @@ def evaluate_position(req: EvaluateRequest):
         "is_legal_board": is_legal_board
     }
 
-def compute_single_move(board: chess.Board, model_id: str, allow_illegal: bool = False, temperature: float = 0.0) -> Dict:
+def compute_single_move(board: chess.Board, model_id: str, allow_illegal: Optional[bool] = None, temperature: float = 0.0) -> Dict:
     t0 = time.time()
     model, meta = get_loaded_model(model_id)
+    if allow_illegal is None:
+        allow_illegal = meta.get("allow_illegal", False) if meta else False
 
-    # 1. UCI Engines (Stockfish or pawnGO)
+    # 1. UCI Engines
     if meta and meta["category"] == "uci_engine":
         eng_name = "stockfish" if model_id == "stockfish" else "pawngo"
         eng = get_uci_engine(eng_name)
@@ -245,10 +262,12 @@ def compute_single_move(board: chess.Board, model_id: str, allow_illegal: bool =
                 res = eng.play(board, chess.engine.Limit(time=0.05, depth=10))
                 if res.move:
                     dt_ms = int((time.time() - t0) * 1000)
+                    san = board.san(res.move) if res.move in board.legal_moves else res.move.uci()
                     return {
                         "engine_id": model_id,
                         "name": meta["name"],
                         "move": res.move.uci(),
+                        "san": san,
                         "from_sq": chess.square_name(res.move.from_square),
                         "to_sq": chess.square_name(res.move.to_square),
                         "is_legal": True,
@@ -256,7 +275,7 @@ def compute_single_move(board: chess.Board, model_id: str, allow_illegal: bool =
                         "eval": None
                     }
             except Exception as e:
-                print(f"Error playing UCI {model_id}: {e}")
+                print(f"UCI move error {model_id}: {e}")
 
     # 2. Neural Policy
     if model is not None and meta and meta["category"] == "neural_policy":
@@ -264,10 +283,12 @@ def compute_single_move(board: chess.Board, model_id: str, allow_illegal: bool =
             mv = model.select_move(board, temperature=temperature, legal_only=not allow_illegal)
             dt_ms = int((time.time() - t0) * 1000)
             is_leg = mv in board.legal_moves
+            san = board.san(mv) if is_leg else f"{chess.square_name(mv.from_square)}->{chess.square_name(mv.to_square)}*"
             return {
                 "engine_id": model_id,
                 "name": meta["name"],
                 "move": mv.uci(),
+                "san": san,
                 "from_sq": chess.square_name(mv.from_square),
                 "to_sq": chess.square_name(mv.to_square),
                 "is_legal": is_leg,
@@ -275,7 +296,7 @@ def compute_single_move(board: chess.Board, model_id: str, allow_illegal: bool =
                 "eval": None
             }
         except Exception as e:
-            print(f"Error neural policy {model_id}: {e}")
+            print(f"Policy move error {model_id}: {e}")
 
     # 3. Neural NNUE
     if model is not None and meta and meta["category"] == "neural_nnue":
@@ -285,10 +306,12 @@ def compute_single_move(board: chess.Board, model_id: str, allow_illegal: bool =
             if mv:
                 score = model.evaluate_board(board)
                 is_leg = mv in board.legal_moves
+                san = board.san(mv) if is_leg else f"{chess.square_name(mv.from_square)}->{chess.square_name(mv.to_square)}*"
                 return {
                     "engine_id": model_id,
                     "name": meta["name"],
                     "move": mv.uci(),
+                    "san": san,
                     "from_sq": chess.square_name(mv.from_square),
                     "to_sq": chess.square_name(mv.to_square),
                     "is_legal": is_leg,
@@ -296,17 +319,19 @@ def compute_single_move(board: chess.Board, model_id: str, allow_illegal: bool =
                     "eval": score
                 }
         except Exception as e:
-            print(f"Error neural nnue {model_id}: {e}")
+            print(f"NNUE move error {model_id}: {e}")
 
-    # Fallback (e.g. model not trained yet)
+    # Fallback
     dt_ms = int((time.time() - t0) * 1000)
     leg = list(board.legal_moves)
     if leg:
         m = leg[0]
+        san = board.san(m)
         return {
             "engine_id": model_id,
             "name": meta["name"] if meta else model_id,
             "move": m.uci(),
+            "san": san,
             "from_sq": chess.square_name(m.from_square),
             "to_sq": chess.square_name(m.to_square),
             "is_legal": True,
@@ -318,12 +343,67 @@ def compute_single_move(board: chess.Board, model_id: str, allow_illegal: bool =
         "engine_id": model_id,
         "name": meta["name"] if meta else model_id,
         "move": "e2e4",
+        "san": "e4*",
         "from_sq": "e2",
         "to_sq": "e4",
         "is_legal": False,
         "duration_ms": dt_ms,
         "simulated": True
     }
+
+def check_game_termination(board: chess.Board, move_count: int, history_fens: List[str]) -> tuple:
+    """
+    Evaluates game termination conditions under both Standard and Anarchy Chess rules:
+    - Regicide (King capture)
+    - Total Annihilation (all pieces eliminated)
+    - Checkmate & Stalemate (standard chess)
+    - 3-Fold Repetition of board layout
+    - Move Limit Exhaustion
+    """
+    piece_map = board.piece_map()
+    white_has_king = any(p.piece_type == chess.KING and p.color == chess.WHITE for p in piece_map.values())
+    black_has_king = any(p.piece_type == chess.KING and p.color == chess.BLACK for p in piece_map.values())
+
+    # 1. Regicide
+    if not white_has_king and not black_has_king:
+        return True, "1/2-1/2", "Both kings captured (Mutual Annihilation)"
+    if not white_has_king:
+        return True, "0-1", "White King captured (Regicide)"
+    if not black_has_king:
+        return True, "1-0", "Black King captured (Regicide)"
+
+    # 2. Total Annihilation
+    white_pieces = [p for p in piece_map.values() if p.color == chess.WHITE]
+    black_pieces = [p for p in piece_map.values() if p.color == chess.BLACK]
+    if not white_pieces:
+        return True, "0-1", "White pieces completely wiped out"
+    if not black_pieces:
+        return True, "1-0", "Black pieces completely wiped out"
+
+    # 3. Standard Chess Rules (if board is valid)
+    try:
+        if board.is_valid():
+            if board.is_checkmate():
+                winner = "0-1" if board.turn == chess.WHITE else "1-0"
+                winner_name = "Black" if board.turn == chess.WHITE else "White"
+                return True, winner, f"Checkmate by {winner_name}"
+            if board.is_stalemate():
+                return True, "1/2-1/2", "Stalemate"
+            if board.is_insufficient_material():
+                return True, "1/2-1/2", "Draw by insufficient material"
+    except Exception:
+        pass
+
+    # 4. 3-Fold Repetition
+    curr_placement = board.fen().split()[0]
+    if history_fens.count(curr_placement) >= 3:
+        return True, "1/2-1/2", "Draw by 3-fold repetition"
+
+    # 5. Move Count Limit
+    if move_count >= 120:
+        return True, "1/2-1/2", "Draw by move limit (120 full moves)"
+
+    return False, "*", ""
 
 @app.post("/api/ai_move")
 def generate_ai_move(req: AIMoveRequest):
@@ -369,6 +449,135 @@ def compare_engines(req: CompareEnginesRequest):
         res = compute_single_move(board, eng_id, allow_illegal=req.allow_illegal)
         results.append(res)
     return {"results": results}
+
+@app.post("/api/match/step")
+def match_step(req: MatchStepRequest):
+    fen = req.fen.strip()
+    parts = fen.split()
+    active_turn = parts[1] if len(parts) > 1 else "w"
+
+    board = chess.Board(fen)
+
+    # 1. Check if game already ended prior to move
+    is_over, result, reason = check_game_termination(board, req.move_count, req.history_fens)
+    if is_over:
+        return {
+            "fen": fen,
+            "is_game_over": True,
+            "result": result,
+            "termination_reason": reason
+        }
+
+    # 2. Pick active engine
+    current_engine_id = req.white_engine if active_turn == "w" else req.black_engine
+    move_info = compute_single_move(board, current_engine_id)
+
+    from_sq = chess.parse_square(move_info["from_sq"])
+    to_sq = chess.parse_square(move_info["to_sq"])
+
+    # 3. Apply move to board (works for both legal and anarchy moves)
+    p = board.piece_at(from_sq)
+    captured = board.piece_at(to_sq)
+
+    # Handle queen promotion if pawn reaches last rank
+    if p and p.piece_type == chess.PAWN:
+        if (p.color == chess.WHITE and chess.square_rank(to_sq) == 7) or (p.color == chess.BLACK and chess.square_rank(to_sq) == 0):
+            p = chess.Piece(chess.QUEEN, p.color)
+
+    board.remove_piece_at(from_sq)
+    board.set_piece_at(to_sq, p)
+
+    # Flip turn
+    next_turn = chess.BLACK if active_turn == "w" else chess.WHITE
+    board.turn = next_turn
+    if next_turn == chess.WHITE:
+        board.fullmove_number += 1
+
+    new_fen = board.fen()
+
+    # 4. Check termination after move (e.g. King was captured on this turn!)
+    is_over, result, reason = check_game_termination(board, req.move_count, req.history_fens + [new_fen.split()[0]])
+
+    return {
+        "fen": new_fen,
+        "from_sq": move_info["from_sq"],
+        "to_sq": move_info["to_sq"],
+        "move": move_info["move"],
+        "san": move_info.get("san", move_info["move"]),
+        "is_legal": move_info["is_legal"],
+        "engine_name": move_info["name"],
+        "engine_id": current_engine_id,
+        "captured": captured.symbol() if captured else None,
+        "is_game_over": is_over,
+        "result": result,
+        "termination_reason": reason
+    }
+
+class PGNImportRequest(BaseModel):
+    pgn_text: str
+
+class PGNExportRequest(BaseModel):
+    headers: Dict[str, str] = {}
+    moves: List[Dict] = []
+
+@app.post("/api/pgn/import")
+def import_pgn_text(req: PGNImportRequest):
+    import io
+    pgn_io = io.StringIO(req.pgn_text.strip())
+    game = chess.pgn.read_game(pgn_io)
+    if game is None:
+        return {"error": "Could not parse valid PGN text"}
+
+    headers = dict(game.headers)
+    moves_data = []
+    board = game.board()
+
+    for node in game.mainline():
+        mv = node.move
+        from_sq_name = chess.square_name(mv.from_square)
+        to_sq_name = chess.square_name(mv.to_square)
+        san = board.san(mv) if mv in board.legal_moves else mv.uci()
+        is_leg = mv in board.legal_moves
+        captured = board.piece_at(mv.to_square)
+
+        board.push(mv)
+
+        moves_data.append({
+            "move": mv.uci(),
+            "san": san,
+            "from_sq": from_sq_name,
+            "to_sq": to_sq_name,
+            "fen": board.fen(),
+            "is_legal": is_leg,
+            "captured": captured.symbol() if captured else None,
+            "engine_name": "PGN Import"
+        })
+
+    return {
+        "headers": headers,
+        "moves": moves_data,
+        "total_moves": len(moves_data),
+        "final_fen": board.fen()
+    }
+
+@app.post("/api/pgn/export")
+def export_pgn_text(req: PGNExportRequest):
+    game = chess.pgn.Game()
+    for k, v in req.headers.items():
+        game.headers[k] = v
+    node = game
+    board = game.board()
+    for m_info in req.moves:
+        try:
+            mv = chess.Move.from_uci(m_info.get("move", ""))
+            node = node.add_variation(mv)
+            if mv in board.legal_moves:
+                board.push(mv)
+        except Exception:
+            pass
+    exporter = chess.pgn.StringExporter(headers=True, variations=True, comments=True)
+    pgn_str = game.accept(exporter)
+    return {"pgn": pgn_str}
 
 if __name__ == "__main__":
     import uvicorn

@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>pawnGO-Neural Anarchy Sandbox</title>
+  <title>pawnGO-Neural Anarchy Sandbox & Match Arena</title>
   <link rel="stylesheet" href="/static/style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
   <div class="app-container">
@@ -19,10 +19,16 @@
           <path d="M6 20h12v-2a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v2z"/>
           <path d="M5 22h14"/>
         </svg>
-        <h1>pawnGO<span class="neural-badge">Neural</span> <span class="anarchy-badge">Sandbox</span></h1>
+        <h1>pawnGO<span class="neural-badge">Neural</span> <span class="anarchy-badge">Arena</span></h1>
       </div>
-      <p class="subtitle">Multi-engine chess laboratory: free-form anarchy moves, dual evaluation thermometers, and 8-engine comparative analysis</p>
+      <p class="subtitle">Multi-engine chess laboratory: automated engine-vs-engine matches, time controls, anarchy regicide, and game recording</p>
     </header>
+
+    <!-- Navigation Tabs -->
+    <div class="tab-navigation">
+      <button id="tabBtnSandbox" class="tab-btn active">Sandbox & Analysis</button>
+      <button id="tabBtnMatch" class="tab-btn">Engine Match Arena (14 Engines)</button>
+    </div>
 
     <!-- Main Workspace -->
     <div class="main-layout">
@@ -46,14 +52,24 @@
 
       <!-- Chess Board Section -->
       <div class="board-wrapper">
-        <div class="turn-status-banner">
-          <span id="turnIndicator" class="turn-pill white-turn">White to Move</span>
-          <span id="evalDetails" class="eval-pill">Stockfish: +0.00</span>
-          <span id="legalityIndicator" class="legality-pill legal">Standard Board</span>
+        <!-- Chess Clocks Banner (Active in Match Mode) -->
+        <div id="clockBanner" class="clock-banner">
+          <div id="blackClock" class="clock-card black-clock">
+            <span class="clock-label">Black Clock</span>
+            <span id="blackClockTime" class="clock-digits">03:00.0</span>
+          </div>
+          <div class="clock-status-center">
+            <span id="turnIndicator" class="turn-pill white-turn">White to Move</span>
+            <span id="legalityIndicator" class="legality-pill legal">Standard Board</span>
+          </div>
+          <div id="whiteClock" class="clock-card white-clock active-clock">
+            <span class="clock-label">White Clock</span>
+            <span id="whiteClockTime" class="clock-digits">03:00.0</span>
+          </div>
         </div>
 
         <div id="board" class="chess-board">
-          <!-- 64 squares rendered via JS with SVG vector pieces -->
+          <!-- 64 squares rendered via JS with vector SVG pieces -->
         </div>
 
         <!-- FEN Input/Display -->
@@ -67,141 +83,220 @@
             </svg>
           </button>
         </div>
+
+        <!-- Move History Replayer Bar -->
+        <div class="replayer-bar">
+          <div class="replayer-controls">
+            <button id="btnReplayStart" class="btn-icon" title="First Move (Home)">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><polygon points="11 19 2 12 11 5 11 19"/><polygon points="22 19 13 12 22 5 22 19"/></svg>
+            </button>
+            <button id="btnReplayPrev" class="btn-icon" title="Previous Move (Left Arrow)">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5" stroke="currentColor" stroke-width="2"/></svg>
+            </button>
+            <button id="btnReplayNext" class="btn-icon" title="Next Move (Right Arrow)">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19" stroke="currentColor" stroke-width="2"/></svg>
+            </button>
+            <button id="btnReplayEnd" class="btn-icon" title="Latest Move (End)">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><polygon points="13 5 22 12 13 19 13 5"/><polygon points="2 5 11 12 2 19 2 5"/></svg>
+            </button>
+          </div>
+          <div class="replayer-info">
+            <span id="moveCounter" class="move-counter">Move 0 / 0</span>
+            <span id="branchNotice" class="branch-pill hidden">Rewound (Next move branches)</span>
+          </div>
+          <div class="replayer-actions">
+            <button id="btnOpenPgnModal" class="btn btn-sm btn-primary" title="Import PGN game from clipboard or file">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Import PGN
+            </button>
+            <button id="btnExportPgn" class="btn btn-sm btn-secondary" title="Export game as standard PGN">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Export PGN
+            </button>
+            <button id="btnSaveGame" class="btn btn-sm btn-secondary" title="Save game to JSON">JSON</button>
+            <label class="btn btn-sm btn-secondary file-upload-btn" title="Load game from JSON">
+              Load
+              <input type="file" id="fileLoadGame" accept=".json" style="display:none;">
+            </label>
+          </div>
+        </div>
       </div>
 
-      <!-- Controls & Multi-Engine Panel -->
+      <!-- Right Panels Column -->
       <div class="control-panel">
-        <!-- Single AI Move Card -->
-        <div class="card">
-          <div class="card-header">
-            <h3>Quick Engine Move</h3>
-          </div>
-          
-          <div class="form-group">
-            <label for="modelSelect">Active Engine:</label>
-            <select id="modelSelect" class="styled-select">
-              <optgroup label="Classical Search Engines">
-                <option value="pawngo_cpp" selected>pawnGO C++ (Alpha-Beta)</option>
-                <option value="stockfish">Stockfish 17.1 (Grandmaster)</option>
-              </optgroup>
-              <optgroup label="Policy Networks (Intuitive / Zero-Depth)">
-                <option value="policy_pawngo_all">Policy: pawnGO (All Moves)</option>
-                <option value="policy_pawngo_wins">Policy: pawnGO (Wins & Draws)</option>
-                <option value="policy_winner_only">Policy: Grandmaster (Winners & Draws)</option>
-              </optgroup>
-              <optgroup label="NNUE Value Networks (Evaluation / 1-Ply)">
-                <option value="nnue_pawngo_all">NNUE: pawnGO (All Moves)</option>
-                <option value="nnue_pawngo_wins">NNUE: pawnGO (Wins & Draws)</option>
-                <option value="nnue_winner_only">NNUE: Grandmaster (Winners & Draws)</option>
-              </optgroup>
-            </select>
-          </div>
+        <!-- View 1: Match Arena Panel -->
+        <div id="matchPanel" class="match-panel-container">
+          <div class="card">
+            <div class="card-header">
+              <h3>Engine-vs-Engine Match Setup</h3>
+            </div>
+            
+            <div class="match-pair-grid">
+              <div class="form-group">
+                <label for="matchWhiteEngine">White Player (14 Engines):</label>
+                <select id="matchWhiteEngine" class="styled-select"></select>
+              </div>
+              <div class="form-group">
+                <label for="matchBlackEngine">Black Player (14 Engines):</label>
+                <select id="matchBlackEngine" class="styled-select"></select>
+              </div>
+            </div>
 
-          <div class="form-group checkbox-group">
-            <label>
-              <input type="checkbox" id="chkAllowIllegal">
-              Allow Illegal / Anarchy AI Moves
-            </label>
-            <span class="hint">Permits Policy Network to propose unconstrained moves</span>
-          </div>
+            <!-- Time Control Selector -->
+            <div class="form-group">
+              <label for="timeControlSelect">Time Control:</label>
+              <select id="timeControlSelect" class="styled-select">
+                <option value="bullet_1_05">Bullet Blitz (1 min + 0.5s inc)</option>
+                <option value="blitz_3_1" selected>Blitz (3 min + 1.0s inc)</option>
+                <option value="rapid_5_2">Rapid (5 min + 2.0s inc)</option>
+                <option value="fixed_200ms">Fixed 200ms / move</option>
+                <option value="fixed_500ms">Fixed 500ms / move</option>
+                <option value="unlimited">Step-by-step (Manual / No Clock)</option>
+              </select>
+            </div>
 
-          <button id="btnAiMove" class="btn btn-primary btn-block">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-              <polygon points="5 3 19 12 5 21 5 3"/>
-            </svg>
-            Execute Engine Move
-          </button>
-          <div id="aiComment" class="ai-comment">Ready for move...</div>
-        </div>
+            <div class="form-group">
+              <label for="matchSpeedSlider">Move Animation Delay: <span id="lblSpeedVal">400ms</span></label>
+              <input type="range" id="matchSpeedSlider" min="50" max="1500" step="50" value="400" class="slider">
+            </div>
 
-        <!-- Multi-Engine Comparison Card -->
-        <div class="card">
-          <div class="card-header">
-            <h3>Multi-Engine Comparison (8 Engines)</h3>
-          </div>
-          <p class="card-desc">Select engines to query concurrently and compare their move proposals:</p>
+            <div class="btn-group">
+              <button id="btnStartMatch" class="btn btn-primary btn-block">Start Engine Match</button>
+              <button id="btnPauseMatch" class="btn btn-secondary btn-block" disabled>Pause</button>
+              <button id="btnStepMatch" class="btn btn-secondary">Step 1 Move</button>
+            </div>
 
-          <div class="engine-checkbox-grid">
-            <label class="engine-check-item">
-              <input type="checkbox" class="cmp-engine-chk" value="pawngo_cpp" checked>
-              <span>pawnGO C++</span>
-            </label>
-            <label class="engine-check-item">
-              <input type="checkbox" class="cmp-engine-chk" value="stockfish" checked>
-              <span>Stockfish 17.1</span>
-            </label>
-            <label class="engine-check-item">
-              <input type="checkbox" class="cmp-engine-chk" value="policy_pawngo_all" checked>
-              <span>Policy: pawnGO (All)</span>
-            </label>
-            <label class="engine-check-item">
-              <input type="checkbox" class="cmp-engine-chk" value="policy_pawngo_wins" checked>
-              <span>Policy: pawnGO (Wins)</span>
-            </label>
-            <label class="engine-check-item">
-              <input type="checkbox" class="cmp-engine-chk" value="policy_winner_only">
-              <span>Policy: Grandmaster</span>
-            </label>
-            <label class="engine-check-item">
-              <input type="checkbox" class="cmp-engine-chk" value="nnue_pawngo_all">
-              <span>NNUE: pawnGO (All)</span>
-            </label>
-            <label class="engine-check-item">
-              <input type="checkbox" class="cmp-engine-chk" value="nnue_pawngo_wins">
-              <span>NNUE: pawnGO (Wins)</span>
-            </label>
-            <label class="engine-check-item">
-              <input type="checkbox" class="cmp-engine-chk" value="nnue_winner_only">
-              <span>NNUE: Grandmaster</span>
-            </label>
+            <div id="matchTerminationBanner" class="termination-banner hidden">
+              <span id="matchResultBadge" class="result-badge">*</span>
+              <span id="matchReasonText" class="reason-text">Game in progress</span>
+            </div>
           </div>
 
-          <button id="btnCompareEngines" class="btn btn-secondary btn-block">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="18" y1="20" x2="18" y2="10"/>
-              <line x1="12" y1="20" x2="12" y2="4"/>
-              <line x1="6" y1="20" x2="6" y2="14"/>
-            </svg>
-            Compare Selected Engines
-          </button>
-
-          <!-- Comparison Results Table -->
-          <div id="comparisonResultsContainer" class="comparison-container hidden">
-            <table class="cmp-table">
-              <thead>
-                <tr>
-                  <th>Engine</th>
-                  <th>Proposed Move</th>
-                  <th>Eval</th>
-                  <th>Latency</th>
-                </tr>
-              </thead>
-              <tbody id="cmpTableBody">
-                <!-- Dynamically populated -->
-              </tbody>
-            </table>
+          <!-- Move History Card -->
+          <div class="card">
+            <div class="card-header">
+              <h3>Move Notation History</h3>
+            </div>
+            <div id="moveHistoryList" class="move-history-scroll">
+              <div class="empty-history-text">No moves recorded yet</div>
+            </div>
           </div>
         </div>
 
-        <!-- Piece Palette & Board Utils -->
-        <div class="card">
-          <div class="card-header">
-            <h3>Piece Spawner (Anarchy Setup)</h3>
-          </div>
-          <div id="piecePalette" class="piece-palette">
-            <!-- Palette SVG pieces generated via JS -->
+        <!-- View 2: Sandbox & Analysis Panel (Hidden by default or toggled) -->
+        <div id="sandboxPanel" class="sandbox-panel-container hidden">
+          <div class="card">
+            <div class="card-header">
+              <h3>Next Move Predictor & AI Move</h3>
+            </div>
+            <div class="form-group">
+              <label for="modelSelect">Target Engine / Neural Model:</label>
+              <select id="modelSelect" class="styled-select"></select>
+            </div>
+            <div class="form-group checkbox-group">
+              <label>
+                <input type="checkbox" id="chkAllowIllegal">
+                Allow Illegal / Anarchy AI Moves
+              </label>
+            </div>
+            <div class="btn-group">
+              <button id="btnPredictNext" class="btn btn-secondary" style="flex:1;">Predict Next Move</button>
+              <button id="btnAiMove" class="btn btn-primary" style="flex:1;">Execute Move</button>
+            </div>
+            
+            <div id="aiPredictionBox" class="ai-prediction-card hidden">
+              <div class="prediction-header">
+                <span class="prediction-label">Prediction:</span>
+                <span id="predMoveSan" class="prediction-badge">e4</span>
+                <span id="predEngineTag" class="prediction-tag">Policy</span>
+              </div>
+              <div class="prediction-details">
+                <span id="predMoveUci" class="pred-meta">e2 -> e4</span>
+                <span id="predEval" class="pred-meta"></span>
+                <span id="predTime" class="pred-meta">14ms</span>
+              </div>
+              <button id="btnPlayPrediction" class="btn btn-sm btn-primary btn-block">Play This Suggestion</button>
+            </div>
+
+            <div id="aiComment" class="ai-comment">Ready for move prediction...</div>
           </div>
 
-          <div class="btn-group">
-            <button id="btnFlipTurn" class="btn btn-secondary">Flip Turn</button>
-            <button id="btnResetBoard" class="btn btn-secondary">Reset Position</button>
-            <button id="btnClearBoard" class="btn btn-danger">Clear Board</button>
+          <div class="card">
+            <div class="card-header">
+              <h3>Multi-Engine Comparison (8 Engines)</h3>
+            </div>
+            <div class="engine-checkbox-grid">
+              <label class="engine-check-item"><input type="checkbox" class="cmp-engine-chk" value="pawngo_cpp" checked><span>pawnGO C++</span></label>
+              <label class="engine-check-item"><input type="checkbox" class="cmp-engine-chk" value="stockfish" checked><span>Stockfish 17.1</span></label>
+              <label class="engine-check-item"><input type="checkbox" class="cmp-engine-chk" value="policy_pawngo_all_legal" checked><span>Policy: pawnGO (All)</span></label>
+              <label class="engine-check-item"><input type="checkbox" class="cmp-engine-chk" value="policy_pawngo_wins_legal" checked><span>Policy: pawnGO (Wins)</span></label>
+              <label class="engine-check-item"><input type="checkbox" class="cmp-engine-chk" value="policy_winner_only_legal"><span>Policy: Grandmaster</span></label>
+              <label class="engine-check-item"><input type="checkbox" class="cmp-engine-chk" value="nnue_pawngo_all_legal"><span>NNUE: pawnGO (All)</span></label>
+              <label class="engine-check-item"><input type="checkbox" class="cmp-engine-chk" value="nnue_pawngo_wins_legal"><span>NNUE: pawnGO (Wins)</span></label>
+              <label class="engine-check-item"><input type="checkbox" class="cmp-engine-chk" value="nnue_winner_only_legal"><span>NNUE: Grandmaster</span></label>
+            </div>
+            <button id="btnCompareEngines" class="btn btn-secondary btn-block">Compare Selected Engines</button>
+            <div id="comparisonResultsContainer" class="comparison-container hidden">
+              <table class="cmp-table">
+                <thead><tr><th>Engine</th><th>Move</th><th>Eval</th><th>Time</th></tr></thead>
+                <tbody id="cmpTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h3>Piece Spawner (Anarchy Setup)</h3>
+            </div>
+            <div id="piecePalette" class="piece-palette"></div>
+            <div class="btn-group">
+              <button id="btnFlipTurn" class="btn btn-secondary">Flip Turn</button>
+              <button id="btnResetBoard" class="btn btn-secondary">Reset Position</button>
+              <button id="btnClearBoard" class="btn btn-danger">Clear Board</button>
+            </div>
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <script src="/static/app.js"></script>
-</body>
+  <!-- PGN Import Modal -->
+  <div id="pgnModal" class="modal-backdrop hidden">
+      <div class="modal-dialog">
+        <div class="modal-header">
+          <h3>Import PGN Game</h3>
+          <button id="btnClosePgnModal" class="btn-icon modal-close-btn">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p class="card-desc">Paste PGN text below (or upload a .pgn file) to replay, explore branches, or predict the next move with neural models:</p>
+          <textarea id="pgnTextInput" class="pgn-textarea" rows="7" placeholder="[Event &quot;FIDE World Championship&quot;]&#10;1. e4 e5 2. Nf3 Nc6 3. Bc4 Bc5..."></textarea>
+          
+          <div class="modal-file-row">
+            <label class="btn btn-sm btn-secondary file-upload-btn">
+              Choose .pgn file
+              <input type="file" id="fileImportPgn" accept=".pgn,.txt" style="display:none;">
+            </label>
+            <span id="pgnFileName" class="modal-filename-text">No file chosen</span>
+          </div>
+
+          <div class="modal-options">
+            <label class="checkbox-label">
+              <input type="checkbox" id="chkPgnJumpToEnd" checked>
+              Jump to end of game after import
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" id="chkPgnAutoPredict" checked>
+              Auto-predict next move with active engine
+            </label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="btnCancelPgnModal" class="btn btn-secondary">Cancel</button>
+          <button id="btnDoImportPgn" class="btn btn-primary">Import & Load Game</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+  </body>
 </html>
