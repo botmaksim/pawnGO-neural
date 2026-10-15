@@ -1,0 +1,102 @@
+[
+  {
+    "epoch": 1,
+    "train_loss": 4.3943,
+    "train_acc": 16.07,
+    "val_loss": 3.6071,
+    "val_top1": 20.66,
+    "val_top3": 37.13,
+    "lr": 0.001,
+    "avg_grad_norm": 2.288
+  },
+  {
+    "epoch": 2,
+    "train_loss": 2.9791,
+    "train_acc": 29.43,
+    "val_loss": 3.4742,
+    "val_top1": 22.89,
+    "val_top3": 40.92,
+    "lr": 0.001,
+    "avg_grad_norm": 2.292
+  },
+  {
+    "epoch": 3,
+    "train_loss": 2.4112,
+    "train_acc": 41.6,
+    "val_loss": 3.5408,
+    "val_top1": 24.18,
+    "val_top3": 42.3,
+    "lr": 0.0009701478472890247,
+    "avg_grad_norm": 2.332
+  },
+  {
+    "epoch": 4,
+    "train_loss": 1.9859,
+    "train_acc": 52.8,
+    "val_loss": 3.7152,
+    "val_top1": 24.47,
+    "val_top3": 42.37,
+    "lr": 0.0008841919993438941,
+    "avg_grad_norm": 2.351
+  },
+  {
+    "epoch": 5,
+    "train_loss": 1.6449,
+    "train_acc": 62.83,
+    "val_loss": 3.8978,
+    "val_top1": 24.71,
+    "val_top3": 42.59,
+    "lr": 0.0007524999999999999,
+    "avg_grad_norm": 2.353
+  },
+  {
+    "epoch": 6,
+    "train_loss": 1.3711,
+    "train_acc": 71.68,
+    "val_loss": 4.2126,
+    "val_top1": 24.57,
+    "val_top3": 42.46,
+    "lr": 0.0005909558479451306,
+    "avg_grad_norm": 2.306
+  },
+  {
+    "epoch": 7,
+    "train_loss": 1.1558,
+    "train_acc": 79.15,
+    "val_loss": 4.489,
+    "val_top1": 24.35,
+    "val_top3": 42.58,
+    "lr": 0.0004190441520548695,
+    "avg_grad_norm": 2.199
+  },
+  {
+    "epoch": 8,
+    "train_loss": 0.9935,
+    "train_acc": 85.11,
+    "val_loss": 4.6319,
+    "val_top1": 24.78,
+    "val_top3": 42.84,
+    "lr": 0.00025750000000000013,
+    "avg_grad_norm": 2.039
+  },
+  {
+    "epoch": 9,
+    "train_loss": 0.886,
+    "train_acc": 89.05,
+    "val_loss": 4.7133,
+    "val_top1": 25.01,
+    "val_top3": 42.7,
+    "lr": 0.00012580800065610596,
+    "avg_grad_norm": 1.873
+  },
+  {
+    "epoch": 10,
+    "train_loss": 0.8273,
+    "train_acc": 91.2,
+    "val_loss": 4.7428,
+    "val_top1": 24.93,
+    "val_top3": 42.75,
+    "lr": 3.9852152710975386e-05,
+    "avg_grad_norm": 1.747
+  }
+]

@@ -7,10 +7,13 @@ Supports:
 """
 
 import os
+import sys
 import argparse
 import struct
 import torch
 import numpy as np
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from models.nnue_net import NNUENet
 
 def export_nnue_binary(model_path: str, output_path: str, quantize: bool = False):
