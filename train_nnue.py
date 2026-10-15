@@ -106,7 +106,7 @@ def train_nnue(data_path, epochs=10, batch_size=512, lr=1e-3, device=None, save_
         if val_avg_loss < best_val_loss:
             best_val_loss = val_avg_loss
             torch.save(model.state_dict(), save_path)
-            print(f"    ★ Saved new best NNUE model to {save_path} (Val Loss: {val_avg_loss:.4f})")
+            print(f"    [*] Saved new best NNUE model to {save_path} (Val Loss: {val_avg_loss:.4f})")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train NNUE Value Network")

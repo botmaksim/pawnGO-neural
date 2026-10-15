@@ -72,7 +72,7 @@ def main():
         run_cmd(nnue_cmd)
 
     print("\n" + "=" * 65)
-    print("   ★ ALL 6 MODELS SUCCESSFULLY TRAINED AND SAVED TO models/ ★   ")
+    print("   [*] ALL 6 MODELS SUCCESSFULLY TRAINED AND SAVED TO models/ [*]   ")
     print("=" * 65)
 
 if __name__ == "__main__":

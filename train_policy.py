@@ -78,7 +78,7 @@ def train_policy(data_path, epochs=10, batch_size=256, lr=1e-3, device=None, sav
         if val_acc > best_val_acc:
             best_val_acc = val_acc
             torch.save(model.state_dict(), save_path)
-            print(f"    ★ Saved new best model to {save_path} (Val Acc: {val_acc:.2f}%)")
+            print(f"    [*] Saved new best model to {save_path} (Val Acc: {val_acc:.2f}%)")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train Policy Network")
