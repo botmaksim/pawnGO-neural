@@ -127,16 +127,18 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  width: 70px;
+  width: 84px;
+  flex-shrink: 0;
 }
 
 .thermo-source-toggle {
   display: flex;
   background: rgba(0, 0, 0, 0.4);
   border: 1px solid var(--border-color);
-  border-radius: 6px;
+  border-radius: 8px;
   padding: 2px;
   width: 100%;
+  gap: 2px;
 }
 
 .thermo-btn {
@@ -144,12 +146,14 @@ body {
   background: transparent;
   border: none;
   color: var(--text-muted);
-  font-size: 0.65rem;
-  font-weight: 600;
-  padding: 4px 2px;
-  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 5px 3px;
+  border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s ease;
+  white-space: nowrap;
+  text-align: center;
 }
 
 .thermo-btn.active {
@@ -163,23 +167,24 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  width: 50px;
-  height: 500px;
+  width: 60px;
+  height: 504px;
 }
 
 .thermometer-label-top, .thermometer-label-bottom {
-  font-size: 0.7rem;
-  font-weight: 600;
+  font-size: 0.72rem;
+  font-weight: 700;
   color: var(--text-muted);
   text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .thermometer-track {
   position: relative;
-  width: 30px;
+  width: 26px;
   flex: 1;
   background-color: #1e293b;
-  border-radius: 15px;
+  border-radius: 13px;
   overflow: hidden;
   border: 2px solid rgba(255, 255, 255, 0.15);
   display: flex;
@@ -209,13 +214,15 @@ body {
   left: 50%;
   transform: translate(-50%, -50%);
   font-family: 'Fira Code', monospace;
-  font-size: 0.68rem;
+  font-size: 0.72rem;
   font-weight: 700;
-  color: #0f141c;
-  background: rgba(255, 255, 255, 0.9);
-  padding: 1px 4px;
-  border-radius: 4px;
-  z-index: 3;
+  color: #f8fafc;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  padding: 2px 6px;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+  z-index: 5;
   pointer-events: none;
   white-space: nowrap;
 }
@@ -225,6 +232,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  flex-shrink: 0;
 }
 
 /* Clock Banner */
@@ -232,10 +240,10 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  width: 480px;
+  width: 504px;
   background: var(--bg-secondary);
   border-radius: 8px;
-  padding: 6px 10px;
+  padding: 6px 12px;
   border: 1px solid var(--border-color);
 }
 
@@ -312,14 +320,15 @@ body {
 /* Chess Board */
 .chess-board {
   display: grid;
-  grid-template-columns: repeat(8, 60px);
-  grid-template-rows: repeat(8, 60px);
-  width: 480px;
-  height: 480px;
-  border: 3px solid #334155;
+  grid-template-columns: repeat(8, 63px);
+  grid-template-rows: repeat(8, 63px);
+  width: 504px;
+  height: 504px;
+  border: 2px solid #334155;
   border-radius: 8px;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
   user-select: none;
+  contain: layout style paint;
 }
 
 .square {
@@ -338,20 +347,21 @@ body {
 
 .square .coord {
   position: absolute;
-  font-size: 0.6rem;
-  font-family: 'Fira Code', monospace;
-  font-weight: 600;
-  opacity: 0.6;
+  font-size: 0.68rem;
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-weight: 700;
   pointer-events: none;
-  color: #0f141c;
+  user-select: none;
 }
 
-.coord.file { bottom: 2px; right: 3px; }
-.coord.rank { top: 2px; left: 3px; }
+.square.light .coord { color: #64748b; }
+.square.dark .coord { color: #dee3e8; }
+.coord.file { bottom: 3px; right: 4px; }
+.coord.rank { top: 3px; left: 4px; }
 
 .piece-wrapper {
-  width: 82%;
-  height: 82%;
+  width: 90%;
+  height: 90%;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -363,7 +373,7 @@ body {
 .svg-piece {
   width: 100%;
   height: 100%;
-  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.5));
+  display: block;
 }
 
 /* FEN Box */
@@ -372,10 +382,10 @@ body {
   align-items: center;
   gap: 8px;
   background: var(--bg-secondary);
-  padding: 6px 10px;
+  padding: 6px 12px;
   border-radius: 6px;
   border: 1px solid var(--border-color);
-  width: 480px;
+  width: 504px;
 }
 
 .fen-box label {
@@ -400,10 +410,10 @@ body {
   justify-content: space-between;
   align-items: center;
   background: var(--bg-secondary);
-  padding: 6px 10px;
+  padding: 6px 12px;
   border-radius: 6px;
   border: 1px solid var(--border-color);
-  width: 480px;
+  width: 504px;
 }
 
 .replayer-controls {
@@ -453,6 +463,8 @@ body {
 /* Control Panel */
 .control-panel {
   flex: 1;
+  min-width: 440px;
+  max-width: 520px;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -595,8 +607,10 @@ body {
 
 /* Move History Scroll */
 .move-history-scroll {
-  max-height: 140px;
+  height: 200px;
+  max-height: 200px;
   overflow-y: auto;
+  scroll-behavior: smooth;
   background: rgba(0, 0, 0, 0.25);
   border-radius: 6px;
   padding: 8px;
