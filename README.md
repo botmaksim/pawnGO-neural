@@ -1,6 +1,6 @@
-# pawnGO-Neural 🧠♟️
+# pawnGO-Neural
 
-Machine learning laboratory and neural network models trained on tournament games of the **pawnGO** chess engine vs Stockfish.
+Machine learning laboratory and neural network models trained on tournament games of the pawnGO chess engine vs Stockfish.
 
 ## Overview
 
@@ -12,8 +12,8 @@ This repository contains the dataset preprocessing pipelines, PyTorch neural arc
    - Outputs move probabilities across 4096 action indices. Supports strict legal masking or pure anarchy move hallucination.
 
 2. **NNUE / Value Networks (HalfKP Evaluation)**
-   - 768-dimensional sparse input (64 squares × 12 piece types) $\to$ 128 accumulator $\to$ 32 $\to$ 1 scalar output.
-   - Predicts normalized position evaluation in $[-1.0, 1.0]$.
+   - 768-dimensional sparse input (64 squares x 12 piece types) -> 128 accumulator -> 32 -> 1 scalar output.
+   - Predicts normalized position evaluation in [-1.0, 1.0].
    - Exportable to C++ binary format for integration into pawnGO's evaluator (`export/export_nnue.py`).
 
 ---
@@ -22,8 +22,8 @@ This repository contains the dataset preprocessing pipelines, PyTorch neural arc
 
 We train across 3 behavioral target modes:
 - **`pawngo-all`** (*Pure pawnGO Clone*): Learns pawnGO's exact playstyle, heuristics, and tactical preferences across all games.
-- **`pawngo-wins`** (*pawnGO Gold Standard*): Learns exclusively from pawnGO's winning games (1500+ dominant victories).
-- **`winner-only`** (*Grandmaster Style*): Learns strictly from the winner of each match (pawnGO or Stockfish).
+- **`pawngo-positive` / `pawngo-wins`** (*pawnGO High-Performance Mode*): Learns from pawnGO's victories and successful defensive draws against high-depth Stockfish.
+- **`winner-only`** (*Grandmaster Style*): Learns strictly from the winner (or drawing sides) of each match.
 
 Combined with the 2 architectures, we produce 6 distinct checkpoints:
 * `models/policy_pawngo_all.pt`
@@ -37,10 +37,11 @@ Combined with the 2 architectures, we produce 6 distinct checkpoints:
 
 ## Anti-Endgame-Skew Pipeline
 
-Chess games naturally generate far more moves in endgames (40–80 move shuffles) than in openings (10–15 moves). To prevent convolutional networks from over-optimizing on sparse empty boards and forgetting middlegame tactics, `data/extract_pgn.py` implements:
+Chess games naturally generate far more moves in endgames (40-80 move shuffles) than in openings (10-15 moves). To prevent convolutional networks from over-optimizing on sparse empty boards and forgetting middlegame tactics, `data/extract_pgn.py` implements:
 - **Game Phase Classification**: Classifies each position into opening, middlegame, or endgame based on material and piece counts.
 - **Endgame Decimation**: Caps endgame positions per game and samples non-capture/non-pawn moves with a stride.
 - **Dead-Draw Filtering**: Discards 0.00-shuffling endgame repetitions.
+- **Draw Inclusion**: Includes high-level draws against 2800-3600 Elo Stockfish to preserve endgame defense knowledge.
 
 ---
 
